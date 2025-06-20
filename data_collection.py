@@ -17,7 +17,7 @@ class DataCollectionAgent:
         
         data['SMA_20'] = data['Close'].rolling(window=20).mean()
         data['Daily_Return'] = data['Close'].pct_change()
-        data.fillna(method='ffill', inplace=True)
+        data.ffill(inplace=True)
         
         self.historical_cache[stock_data] = data
         return data
@@ -29,7 +29,7 @@ class DataCollectionAgent:
         return {
             'last_price': data.last_price,
             'volume': data.last_volume,
-            'market_open': data.market_open,
+            'market_open': data._exchange_open_now,
             'previous_close': data.previous_close,
             'currency': data.currency
         }
@@ -42,3 +42,19 @@ class DataCollectionAgent:
             'cashflow': stock.cashflow,
             'info': stock.info
         }
+    
+
+if __name__ == "__main__":
+    agent = DataCollectionAgent()
+
+    # Fetch historical data
+    historical_data = agent.fetch_stock_data("MSFT", period="6mo", interval="1d")
+    print(f"Historical data shape: {historical_data.shape}")
+
+    # Fetch real-time quote
+    realtime_data = agent.fetch_realtime_data("MSFT")
+    print(f"Current price: {realtime_data['last_price']}")
+
+    # Fetch fundamentals
+    fundamentals = agent.fetch_fundamentals("MSFT")
+    print(f"Enterprise value: {fundamentals['info'].get('enterpriseValue')}")

@@ -42,9 +42,26 @@ class technical_analyst_agent:
         #final rsi calculation
         rsi = 100 -(100 / (1 + (avg_gain/avg_loss)))
         return rsi
+    
+    def calculate_simple_moving_average(self,ticker,period=14):
+        data = self.getData(ticker)
+        moving_avg_data = data[0].tail(period)['Close'].to_numpy()
+        return np.average(moving_avg_data)
+    
+    def calculate_initial_exponential_moving_average(self, ticker, period = 14):
+        data = self.getData(ticker)
+        closing_prices = data[0].tail(period*2)['Close']
+        ema = closing_prices.ewm(span=period, adjust=False).mean().iloc[-1]
+        return ema
+    
+    def calculate_Macd(self, ticker):
+        return self.calculate_initial_exponential_moving_average(ticker,period=12) - self.calculate_initial_exponential_moving_average(ticker,period=26)
 
 
 
 if __name__ == "__main__":
     metrics = technical_analyst_agent()
     print(metrics.calculate_Rsi('AAPL'))
+    print(metrics.calculate_simple_moving_average('AAPL'))
+    print(metrics.calculate_initial_exponential_moving_average('AAPL'))
+    print(metrics.calculate_Macd('AAPL'))

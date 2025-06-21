@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     # Fetch historical data
     historical_data = agent.fetch_stock_data("MSFT", period="6mo", interval="1d")
-    print(f"Historical data shape: {historical_data.shape}")
+    print(f"Historical data shape: {historical_data}")
 
     # Fetch real-time quote
     realtime_data = agent.fetch_realtime_data("MSFT")

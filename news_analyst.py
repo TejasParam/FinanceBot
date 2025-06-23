@@ -18,7 +18,7 @@ def fetch_alpha_vantage_news(ticker="AAPL", limit=3):
     data = response.json()
     return data.get("feed", [])
 
-def analyze_news_with_gpt4o_mini(news_items):
+def analyze_news(news_items):
     """Analyze and summarize news using GPT-4o mini."""
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
     results = []
@@ -43,7 +43,7 @@ def analyze_news_with_gpt4o_mini(news_items):
 if __name__ == "__main__":
     ticker = "AAPL"
     news_items = fetch_alpha_vantage_news(ticker=ticker, limit=2)
-    analyzed_news = analyze_news_with_gpt4o_mini(news_items)
+    analyzed_news = analyze_news(news_items)
     for news in analyzed_news:
         print("Title:", news["title"])
         print("Summary:", news["summary"])

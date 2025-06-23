@@ -5,9 +5,9 @@ from alpaca_trade_api.rest import REST
 dotenv_path = find_dotenv()
 load_dotenv(dotenv_path)
 
-endpoint = os.getenv("endpoint")
-API_KEY = os.getenv("key")
-API_SECRET_KEY = os.getenv("Secret")
+endpoint = os.getenv("alpaca_endpoint")
+API_KEY = os.getenv("alpaca_key")
+API_SECRET_KEY = os.getenv("alpaca_secret")
 
 api = REST(
     key_id = API_KEY,

@@ -1,8 +1,15 @@
 import openai
 import requests
+import os
+from dotenv import find_dotenv, load_dotenv
+
+dotenv_path = find_dotenv()
+load_dotenv(dotenv_path)
 
 # Replace with your API keys
-ALPHA_VANTAGE_API_KEY = "YOUR_ALPHA_VANTAGE_API_KEY"
+ALPHA_VANTAGE_API_KEY = os.getenv("alpha_vantage_api_key")
+GEMINI_API_KEY = os.getenv("gemini_api_key")
+print(ALPHA_VANTAGE_API_KEY, GEMINI_API_KEY)
 OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
 
 def fetch_alpha_vantage_news(ticker="AAPL", limit=3):

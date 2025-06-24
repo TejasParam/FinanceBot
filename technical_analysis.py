@@ -56,6 +56,10 @@ class technical_analyst_agent:
     
     def calculate_Macd(self, ticker):
         return self.calculate_initial_exponential_moving_average(ticker,period=12) - self.calculate_initial_exponential_moving_average(ticker,period=26)
+    
+    def get_PEratio(self, ticker):
+        stock_info = yf.Ticker(ticker).info
+        return stock_info["trailingPE"]
 
 
 
@@ -65,3 +69,4 @@ if __name__ == "__main__":
     print(metrics.calculate_simple_moving_average('AAPL'))
     print(metrics.calculate_initial_exponential_moving_average('AAPL'))
     print(metrics.calculate_Macd('AAPL'))
+    print(metrics.get_PEratio('AAPL'))

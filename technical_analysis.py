@@ -17,7 +17,7 @@ class technical_analyst_agent:
         data.append(data_collector.fetch_fundamentals(ticker=ticker))
         return data
     
-    def calculate_Rsi(self,ticker,period=14):
+    def calculate_Rsi_percent_change(self,ticker,period=14):
         #get last 15 closing prices
         data = self.getData(ticker)
         rsi_data = data[0].tail(period)['Close'].to_numpy()
@@ -43,6 +43,23 @@ class technical_analyst_agent:
         rsi = 100 -(100 / (1 + (avg_gain/avg_loss)))
         return rsi
     
+
+    def calculate_Rsi_price_change(self, ticker, period=14):
+        data = self.getData(ticker)
+        closes = data[0]['Close']
+        if len(closes) < period + 1:
+            return None  # Not enough data
+        delta = closes.diff().tail(period)
+        gain = delta.clip(lower=0).mean()
+        loss = -delta.clip(upper=0).mean()
+        if loss == 0:
+            return 100
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+
+
+
     def calculate_simple_moving_average(self,ticker,period=14):
         data = self.getData(ticker)
         moving_avg_data = data[0].tail(period)['Close'].to_numpy()

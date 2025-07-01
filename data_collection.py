@@ -8,40 +8,60 @@ class DataCollectionAgent:
         
     def fetch_stock_data(self, ticker: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
         stock_data = f"{ticker}_{period}_{interval}"
-        
-        if stock_data in self.historical_cache:
-            return self.historical_cache[stock_data]
-            
-        stock = yf.Ticker(ticker)
-        data = stock.history(period=period, interval=interval)
-        
-        data['SMA_20'] = data['Close'].rolling(window=20).mean()
-        data['Daily_Return'] = data['Close'].pct_change()
-        data.ffill(inplace=True)
-        
-        self.historical_cache[stock_data] = data
-        return data
+        try:
+            if stock_data in self.historical_cache:
+                return self.historical_cache[stock_data]
+            stock = yf.Ticker(ticker)
+            data = stock.history(period=period, interval=interval)
+            if data.empty or 'Close' not in data:
+                return pd.DataFrame()
+            data['SMA_20'] = data['Close'].rolling(window=20).mean()
+            data['Daily_Return'] = data['Close'].pct_change()
+            data.ffill(inplace=True)
+            self.historical_cache[stock_data] = data
+            return data
+        except Exception as e:
+            print(f"Error fetching stock data for {ticker}: {e}")
+            return pd.DataFrame()
 
     def fetch_realtime_data(self, ticker: str) -> dict:
-        stock = yf.Ticker(ticker)
-        data = stock.fast_info
-        
-        return {
-            'last_price': data.last_price,
-            'volume': data.last_volume,
-            'market_open': data._exchange_open_now,
-            'previous_close': data.previous_close,
-            'currency': data.currency
-        }
+        try:
+            stock = yf.Ticker(ticker)
+            data = stock.fast_info
+            return {
+                'last_price': getattr(data, 'last_price', None),
+                'volume': getattr(data, 'last_volume', None),
+                'market_open': getattr(data, '_exchange_open_now', None),
+                'previous_close': getattr(data, 'previous_close', None),
+                'currency': getattr(data, 'currency', None)
+            }
+        except Exception as e:
+            print(f"Error fetching real-time data for {ticker}: {e}")
+            return {
+                'last_price': None,
+                'volume': None,
+                'market_open': None,
+                'previous_close': None,
+                'currency': None
+            }
 
     def fetch_fundamentals(self, ticker: str) -> dict:
-        stock = yf.Ticker(ticker)
-        return {
-            'financials': stock.financials,
-            'balance_sheet': stock.balance_sheet,
-            'cashflow': stock.cashflow,
-            'info': stock.info
-        }
+        try:
+            stock = yf.Ticker(ticker)
+            return {
+                'financials': getattr(stock, 'financials', None),
+                'balance_sheet': getattr(stock, 'balance_sheet', None),
+                'cashflow': getattr(stock, 'cashflow', None),
+                'info': getattr(stock, 'info', None)
+            }
+        except Exception as e:
+            print(f"Error fetching fundamentals for {ticker}: {e}")
+            return {
+                'financials': None,
+                'balance_sheet': None,
+                'cashflow': None,
+                'info': None
+            }
     
 
 if __name__ == "__main__":

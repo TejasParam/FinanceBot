@@ -17,47 +17,64 @@ class risk_manager_agent:
         Beta < 1: Less volatile than market
         """
         try:
-            # Download data with explicit date range
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=period*365)
+            print(f"Calculating beta for {ticker} relative to {market_ticker}...")
             
-            stock_data = yf.download(ticker, start=start_date, end=end_date)['Close']
-            market_data = yf.download(market_ticker, start=start_date, end=end_date)['Close']
+            # Use a simple approach: get 1 year of data with yfinance period parameter
+            stock_ticker = yf.Ticker(ticker)
+            market_ticker_obj = yf.Ticker(market_ticker)
             
-            # Check if data is empty
-            if stock_data.empty or market_data.empty:
-                print(f"No data available for {ticker} or {market_ticker}")
-                return None
+            # Get historical data
+            stock_hist = stock_ticker.history(period="1y")
+            market_hist = market_ticker_obj.history(period="1y")
             
-            # Calculate returns
-            stock_returns = stock_data.pct_change().dropna()
-            market_returns = market_data.pct_change().dropna()
-            
-            # Ensure we have enough data
-            if len(stock_returns) < 20 or len(market_returns) < 20:
+            if stock_hist.empty or market_hist.empty or len(stock_hist) < 50 or len(market_hist) < 50:
                 print(f"Insufficient data for beta calculation")
                 return None
             
-            # Align dates by using inner join
-            returns_df = pd.DataFrame({
-                'stock': stock_returns,
-                'market': market_returns
-            })
-            returns_df = returns_df.dropna()
+            # Extract closing prices as simple lists
+            stock_prices = stock_hist['Close'].tolist()
+            market_prices = market_hist['Close'].tolist()
             
-            if len(returns_df) < 20:
-                print(f"Insufficient aligned data for beta calculation")
+            # Calculate returns manually
+            stock_returns = []
+            market_returns = []
+            
+            # Only use the minimum length to ensure alignment
+            min_length = min(len(stock_prices), len(market_prices))
+            
+            for i in range(1, min_length):
+                stock_ret = (stock_prices[i] - stock_prices[i-1]) / stock_prices[i-1]
+                market_ret = (market_prices[i] - market_prices[i-1]) / market_prices[i-1]
+                stock_returns.append(stock_ret)
+                market_returns.append(market_ret)
+            
+            if len(stock_returns) < 30:
+                print(f"Insufficient return data for beta calculation")
                 return None
             
-            # Calculate beta using covariance and variance
-            covariance = returns_df['stock'].cov(returns_df['market'])
-            market_variance = returns_df['market'].var()
+            # Convert to numpy arrays for calculation
+            stock_array = np.array(stock_returns)
+            market_array = np.array(market_returns)
+            
+            # Calculate beta using simple statistics
+            # Beta = Covariance(stock, market) / Variance(market)
+            stock_mean = np.mean(stock_array)
+            market_mean = np.mean(market_array)
+            
+            covariance = np.mean((stock_array - stock_mean) * (market_array - market_mean))
+            market_variance = np.mean((market_array - market_mean) ** 2)
             
             if market_variance == 0:
                 print("Market variance is zero, cannot calculate beta")
                 return None
             
             beta = covariance / market_variance
+            
+            # Sanity check
+            if np.isnan(beta) or beta < -3 or beta > 5:
+                print(f"Beta value {beta} is outside reasonable range, using default")
+                return 1.0
+            
             return beta
             
         except Exception as e:
@@ -67,7 +84,7 @@ class risk_manager_agent:
     def calculate_volatility(self, ticker, period=30, annualize=True):
         """Calculate historical volatility (standard deviation of returns)"""
         try:
-            data = self.tech_analyst.getData(ticker)[0]
+            data = self.tech_analyst.getData(ticker)[0]  # Get only the historical data
             returns = data['Close'].pct_change().dropna().tail(period)
             vol = returns.std()
             
@@ -86,7 +103,7 @@ class risk_manager_agent:
         Returns the amount that could be lost with given confidence level
         """
         try:
-            data = self.tech_analyst.getData(ticker)[0]
+            data = self.tech_analyst.getData(ticker)[0]  # Get only the historical data
             returns = data['Close'].pct_change().dropna().tail(period)
             
             # Historical VaR calculation
@@ -103,7 +120,7 @@ class risk_manager_agent:
     def calculate_max_drawdown(self, ticker, period=365):
         """Calculate maximum historical drawdown"""
         try:
-            data = self.tech_analyst.getData(ticker)[0].tail(period)
+            data = self.tech_analyst.getData(ticker)[0].tail(period)  # Get only the historical data
             price = data['Close']
             
             # Calculate running maximum
@@ -144,7 +161,7 @@ class risk_manager_agent:
         Returns liquidity score (higher means more liquid, less risk)
         """
         try:
-            data = self.tech_analyst.getData(ticker)[0].tail(period)
+            data = self.tech_analyst.getData(ticker)[0].tail(period)  # Get only the historical data
             
             # Average daily volume
             avg_volume = data['Volume'].mean()
@@ -173,7 +190,7 @@ class risk_manager_agent:
         Higher is better: >1 is good, >2 is very good, >3 is excellent
         """
         try:
-            data = self.tech_analyst.getData(ticker)[0].tail(period)
+            data = self.tech_analyst.getData(ticker)[0].tail(period)  # Get only the historical data
             returns = data['Close'].pct_change().dropna()
             
             # Calculate annualized return and standard deviation
@@ -194,7 +211,7 @@ class risk_manager_agent:
         Similar to Sharpe but only considers "bad" volatility
         """
         try:
-            data = self.tech_analyst.getData(ticker)[0].tail(period)
+            data = self.tech_analyst.getData(ticker)[0].tail(period)  # Get only the historical data
             returns = data['Close'].pct_change().dropna()
             
             # Calculate annualized return
@@ -308,7 +325,7 @@ class risk_manager_agent:
             dollar_amount = portfolio_value * (adjusted_risk_pct / 100)
             
             # Calculate number of shares
-            current_price = self.tech_analyst.getData(ticker)[0]['Close'].iloc[-1]
+            current_price = self.tech_analyst.getData(ticker)[0]['Close'].iloc[-1]  # Get only the historical data
             shares = int(dollar_amount / current_price)
             
             return {

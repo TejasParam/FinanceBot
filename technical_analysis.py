@@ -5,6 +5,30 @@ from datetime import datetime, timedelta
 from data_collection import DataCollectionAgent
 
 class technical_analyst_agent:
+    def calculate_fibonacci_retracement(self, ticker, period=30):
+        """Calculate Fibonacci retracement levels for the last N periods"""
+        data = self.getData(ticker)
+        df = data[0].tail(period)
+        high = df['High'].max()
+        low = df['Low'].min()
+        diff = high - low
+        levels = {
+            '0.0%': high,
+            '23.6%': high - 0.236 * diff,
+            '38.2%': high - 0.382 * diff,
+            '50.0%': high - 0.5 * diff,
+            '61.8%': high - 0.618 * diff,
+            '100.0%': low
+        }
+        return levels
+
+    def get_trailing_eps(self, ticker):
+        """Get trailing EPS (Earnings Per Share)"""
+        try:
+            stock_info = yf.Ticker(ticker).info
+            return stock_info.get('trailingEps', None)
+        except:
+            return None
     def __init__ (self):
         self.metrics = {}
     
@@ -214,16 +238,18 @@ class technical_analyst_agent:
 
 if __name__ == "__main__":
     metrics = technical_analyst_agent()
-    print(metrics.calculate_Rsi_percent_change('AAPL'))
-    print(metrics.calculate_simple_moving_average('AAPL'))
-    print(metrics.calculate_initial_exponential_moving_average('AAPL'))
-    print(metrics.calculate_Macd('AAPL'))
-    print(metrics.get_PEratio('AAPL'))
-    print(metrics.calculate_bollinger_bands('AAPL'))
-    print(metrics.calculate_stochastic_oscillator('AAPL'))
-    print(metrics.calculate_atr('AAPL'))
-    print(metrics.calculate_vwap('AAPL'))
-    print(metrics.calculate_obv('AAPL'))
-    print(metrics.get_price_to_book('AAPL'))
-    print(metrics.get_eps_growth('AAPL'))
-    print(metrics.get_dividend_yield('AAPL'))
+    print("RSI (percent change):", metrics.calculate_Rsi_percent_change('AAPL'))
+    print("Simple Moving Average:", metrics.calculate_simple_moving_average('AAPL'))
+    print("Exponential Moving Average:", metrics.calculate_initial_exponential_moving_average('AAPL'))
+    print("MACD:", metrics.calculate_Macd('AAPL'))
+    print("P/E Ratio:", metrics.get_PEratio('AAPL'))
+    print("Bollinger Bands (middle, upper, lower):", metrics.calculate_bollinger_bands('AAPL'))
+    print("Stochastic Oscillator (k, d):", metrics.calculate_stochastic_oscillator('AAPL'))
+    print("Average True Range (ATR):", metrics.calculate_atr('AAPL'))
+    print("VWAP:", metrics.calculate_vwap('AAPL'))
+    print("On-Balance Volume (OBV):", metrics.calculate_obv('AAPL'))
+    print("Price to Book Ratio:", metrics.get_price_to_book('AAPL'))
+    print("EPS Growth:", metrics.get_eps_growth('AAPL'))
+    print("Dividend Yield:", metrics.get_dividend_yield('AAPL'))
+    print("Fibonacci Retracement Levels:", metrics.calculate_fibonacci_retracement('AAPL'))
+    print("Trailing EPS:", metrics.get_trailing_eps('AAPL'))

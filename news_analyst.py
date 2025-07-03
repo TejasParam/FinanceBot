@@ -1,7 +1,10 @@
+
 import os
 import json
 import requests
 from dotenv import find_dotenv, load_dotenv
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
 
 dotenv_path = find_dotenv()
 load_dotenv(dotenv_path)
@@ -29,42 +32,31 @@ def fetch_alpha_vantage_news(ticker="AAPL", limit=3):
         print(f"Error fetching news: {e}")
         return []
 
+
+# Load FinBERT model and tokenizer once
+finbert_tokenizer = AutoTokenizer.from_pretrained("yiyanghkust/finbert-tone")
+finbert_model = AutoModelForSequenceClassification.from_pretrained("yiyanghkust/finbert-tone")
+
 def analyze_news(news_items):
-    """Analyze and summarize news using Gemini API. Extract sentiment as a separate field."""
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-    headers = {"Content-Type": "application/json"}
+    """Analyze news using FinBERT for sentiment. Uses Alpha Vantage summary as analysis."""
     results = []
     for news in news_items:
         try:
-            prompt = f"Title: {news.get('title','')}\nSummary: {news.get('summary','')}\n\nSummarize this news and give its sentiment (positive, negative, or neutral):"
-            payload = {
-                "contents": [
-                    {"parts": [{"text": prompt}]}
-                ]
-            }
-            response = requests.post(
-                GEMINI_API_URL + f"?key={GEMINI_API_KEY}",
-                headers=headers,
-                data=json.dumps(payload),
-                timeout=20
-            )
-            response.raise_for_status()
-            gemini_data = response.json()
-            summary = gemini_data["candidates"][0]["content"]["parts"][0]["text"]
-            # Extract sentiment from the summary (look for the word 'positive', 'negative', or 'neutral')
-            sentiment = "neutral"
-            for s in ["positive", "negative", "neutral"]:
-                if s in summary.lower():
-                    sentiment = s
-                    break
+            text = news.get("summary", "") or news.get("title", "")
+            inputs = finbert_tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+            with torch.no_grad():
+                outputs = finbert_model(**inputs)
+                probs = torch.nn.functional.softmax(outputs.logits, dim=1)[0]
+                sentiment_idx = torch.argmax(probs).item()
+                sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+                sentiment = sentiment_map.get(sentiment_idx, "neutral")
             results.append({
                 "title": news.get("title", ""),
                 "summary": news.get("summary", ""),
-                "analysis": summary,
+                "analysis": news.get("summary", ""),  # Use Alpha Vantage summary as analysis
                 "sentiment": sentiment
             })
         except Exception as e:
-            # Use logging in a real project; print for now
             print(f"Error analyzing news: {e}")
             results.append({
                 "title": news.get("title", ""),
@@ -74,14 +66,21 @@ def analyze_news(news_items):
             })
     return results
 
-# Example usage
-if __name__ == "__main__":
-    ticker = "AAPL"
-    news_items = fetch_alpha_vantage_news(ticker=ticker, limit=2)
-    analyzed_news = analyze_news(news_items)
-    for news in analyzed_news:
-        print("Title:", news["title"])
-        print("Summary:", news["summary"])
-        print("Analysis:", news["analysis"])
-        print("Sentiment:", news["sentiment"])
-        print("-" * 40)
+
+
+# NewsAnalyst class to be used by other modules
+class news_analyst:
+    def __init__(self):
+        pass
+
+    def fetch_news(self, ticker="AAPL", limit=3):
+        return fetch_alpha_vantage_news(ticker, limit)
+
+    def analyze_news(self, news_items):
+        return analyze_news(news_items)
+
+    def analyze_stock_news(self, ticker="AAPL", limit=3):
+        news_items = self.fetch_news(ticker, limit)
+        return self.analyze_news(news_items)
+
+

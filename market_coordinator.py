@@ -1,5 +1,7 @@
 import os
 import json
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 from typing import Dict, List, Any
 from data_collection import DataCollectionAgent
 from technical_analysis import technical_analyst_agent
@@ -21,15 +23,10 @@ class MarketCoordinatorAgent:
         self.news_analyst = news_analyst()
         self.portfolio_manager = PortfolioManagerAgent()
         
-        # Configure Gemini
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-            self.model = genai.GenerativeModel('gemini-pro')
-            self.llm_available = True
-        except ImportError:
-            print("⚠️ Gemini not available, using rule-based coordination")
-            self.llm_available = False
+        # Load Llama 2 model and tokenizer from local path (no login required)
+        self.llama_tokenizer = AutoTokenizer.from_pretrained("/Users/tanis/llama-2-7b-chat-hf")
+        self.llama_model = AutoModelForCausalLM.from_pretrained("/Users/tanis/llama-2-7b-chat-hf")
+        self.llm_available = True
     
     def comprehensive_market_analysis(self, tickers: List[str], portfolio_value: float = 100000) -> Dict[str, Any]:
         """
@@ -86,7 +83,7 @@ class MarketCoordinatorAgent:
             return {"error": f"Could not fetch market context: {e}"}
     
     def _llm_coordination_analysis(self, market_data: Dict[str, Any], portfolio_value: float) -> str:
-        """Use LLM for sophisticated market coordination"""
+        """Use Mistral for sophisticated market coordination (replaces Llama 2)"""
         
         coordination_prompt = f"""
 You are a senior portfolio manager overseeing a comprehensive market analysis system. 
@@ -129,8 +126,11 @@ Consider correlation between stocks, market conditions, and portfolio optimizati
 """
         
         try:
-            response = self.model.generate_content(coordination_prompt)
-            return response.text
+            input_ids = self.llama_tokenizer(coordination_prompt, return_tensors="pt").input_ids
+            with torch.no_grad():
+                output = self.llama_model.generate(input_ids, max_new_tokens=512)
+            response_text = self.llama_tokenizer.decode(output[0], skip_special_tokens=True)
+            return response_text
         except Exception as e:
             return f"LLM coordination error: {e}\nFalling back to rule-based analysis..."
     

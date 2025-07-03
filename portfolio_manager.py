@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 from typing import Dict, List, Any
 from data_collection import DataCollectionAgent
 from technical_analysis import technical_analyst_agent
@@ -20,9 +21,9 @@ class PortfolioManagerAgent:
         self.risk_manager = risk_manager_agent()
         self.news_analyst = news_analyst()
         
-        # Configure Gemini
-        genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-        self.model = genai.GenerativeModel('gemini-pro')
+        # Load Llama 2 model and tokenizer from local path (no login required)
+        self.llama_tokenizer = AutoTokenizer.from_pretrained("/Users/tanis/llama-2-7b-chat-hf")
+        self.llama_model = AutoModelForCausalLM.from_pretrained("/Users/tanis/llama-2-7b-chat-hf")
         
     def analyze_stock(self, ticker: str, portfolio_value: float = 100000) -> Dict[str, Any]:
         """
@@ -37,11 +38,14 @@ class PortfolioManagerAgent:
             # Create comprehensive prompt for LLM analysis
             prompt = self._create_analysis_prompt(ticker, analysis_data)
             
-            # Get LLM analysis
-            response = self.model.generate_content(prompt)
+            # Get LLM analysis using Mistral (replaces Llama 2)
+            input_ids = self.llama_tokenizer(prompt, return_tensors="pt").input_ids
+            with torch.no_grad():
+                output = self.llama_model.generate(input_ids, max_new_tokens=512)
+            response_text = self.llama_tokenizer.decode(output[0], skip_special_tokens=True)
             
             # Parse and structure the response
-            result = self._parse_llm_response(response.text, analysis_data)
+            result = self._parse_llm_response(response_text, analysis_data)
             
             return result
             
@@ -203,9 +207,12 @@ Consider diversification, risk balance, and current market conditions.
 """
         
         try:
-            response = self.model.generate_content(comparison_prompt)
+            input_ids = self.llama_tokenizer(comparison_prompt, return_tensors="pt").input_ids
+            with torch.no_grad():
+                output = self.llama_model.generate(input_ids, max_new_tokens=512)
+            response_text = self.llama_tokenizer.decode(output[0], skip_special_tokens=True)
             return {
-                "comparison_analysis": response.text,
+                "comparison_analysis": response_text,
                 "individual_analyses": analyses
             }
         except Exception as e:

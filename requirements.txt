@@ -4,5 +4,7 @@ pandas
 numpy
 python-dotenv
 alpaca-trade-api
-google-generativeai
 requests
+transformers
+torch
+sentencepiece

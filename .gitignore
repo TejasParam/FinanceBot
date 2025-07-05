@@ -1,3 +1,48 @@
-.env
-finance_bot_env/
+# Generated reports and data files
+market_report_*.txt
+market_scan_*.csv
+portfolios_*.json
+
+# ML models and trained data
+models/
+*.pkl
+
+# Python cache files
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+finance_bot_env/
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

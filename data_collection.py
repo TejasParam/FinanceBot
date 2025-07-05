@@ -63,6 +63,10 @@ class DataCollectionAgent:
                 'info': None
             }
     
+    def get_historical_data(self, ticker: str, period: str = "2y", interval: str = "1d") -> pd.DataFrame:
+        """Get historical data for ML training (alias for fetch_stock_data)"""
+        return self.fetch_stock_data(ticker, period, interval)
+    
 
 if __name__ == "__main__":
     agent = DataCollectionAgent()

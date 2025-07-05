@@ -8,3 +8,11 @@ requests
 transformers
 torch
 sentencepiece
+
+# Machine Learning & Advanced Analytics
+scikit-learn
+matplotlib
+seaborn
+ta-lib
+plotly
+joblib

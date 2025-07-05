@@ -273,9 +273,40 @@ class technical_analyst_agent:
             return stock_info.get('dividendYield', 0)
         except Exception:
             return 0
-
-
-
+    
+    def calculate_rsi(self, ticker, period=14):
+        """Calculate RSI (alias for calculate_Rsi_percent_change)"""
+        return self.calculate_Rsi_percent_change(ticker, period)
+    
+    def calculate_macd(self, ticker):
+        """Calculate MACD (alias for calculate_Macd)"""
+        return self.calculate_Macd(ticker)
+        
+    def calculate_bollinger_bands_alias(self, ticker):
+        """Calculate Bollinger Bands (alias using the existing method)"""
+        return self.calculate_bollinger_bands(ticker)
+        
+    def calculate_sma(self, ticker, period=20):
+        """Calculate Simple Moving Average"""
+        try:
+            data = self.getData(ticker)
+            df = data[0]
+            if df.empty or 'Close' not in df:
+                return None
+            return df['Close'].rolling(window=period).mean().iloc[-1]
+        except Exception:
+            return None
+            
+    def calculate_ema(self, ticker, period=12):
+        """Calculate Exponential Moving Average"""
+        try:
+            data = self.getData(ticker)
+            df = data[0]
+            if df.empty or 'Close' not in df:
+                return None
+            return df['Close'].ewm(span=period).mean().iloc[-1]
+        except Exception:
+            return None
 
 if __name__ == "__main__":
     metrics = technical_analyst_agent()

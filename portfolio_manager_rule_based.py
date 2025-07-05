@@ -75,11 +75,21 @@ class AdvancedPortfolioManagerAgent:
                 self.ml_predictor.save_models(self.models_path)
                 print("✅ ML models trained and saved successfully!")
                 
+                # Display model accuracies
+                if hasattr(self.ml_predictor, 'model_accuracies') and self.ml_predictor.model_accuracies:
+                    print("📊 Model Performance:")
+                    for model_name, accuracy in self.ml_predictor.model_accuracies.items():
+                        print(f"   {model_name}: {accuracy:.1%} accuracy")
+                    
+                    avg_accuracy = sum(self.ml_predictor.model_accuracies.values()) / len(self.ml_predictor.model_accuracies)
+                    print(f"   Average: {avg_accuracy:.1%} accuracy")
+                
                 return {
                     "status": "success",
                     "training_results": training_results,
                     "data_points": len(historical_data),
-                    "models_saved": self.models_path
+                    "models_saved": self.models_path,
+                    "model_accuracies": getattr(self.ml_predictor, 'model_accuracies', {})
                 }
             else:
                 return training_results
@@ -157,6 +167,14 @@ class AdvancedPortfolioManagerAgent:
             if self.use_ml and self.ml_predictor.is_trained:
                 ml_features = self._extract_ml_features(analysis_data)
                 ml_prediction = self.ml_predictor.predict_probability(ml_features)
+                
+                # Add model accuracy information
+                if hasattr(self.ml_predictor, 'model_accuracies') and self.ml_predictor.model_accuracies:
+                    ml_prediction['model_accuracies'] = self.ml_predictor.model_accuracies.copy()
+                    # Calculate average accuracy across all models
+                    accuracies = list(self.ml_predictor.model_accuracies.values())
+                    ml_prediction['average_accuracy'] = sum(accuracies) / len(accuracies) if accuracies else 0.0
+                
                 analysis_data['ml_prediction'] = ml_prediction
             
             result = self._enhanced_analysis(ticker, analysis_data)
@@ -297,13 +315,13 @@ class AdvancedPortfolioManagerAgent:
             ml_score * self.rule_weights['ml_prediction']
         )
         
-        # Determine recommendation based on composite score
-        if composite_score > 0.65:
+        # Determine recommendation based on composite score (adjusted for more actionable recommendations)
+        if composite_score > 0.55:
             recommendation = "BUY"
-            confidence = min(0.9, 0.5 + (composite_score - 0.65) * 2)
-        elif composite_score < 0.35:
+            confidence = min(0.9, 0.5 + (composite_score - 0.55) * 3)
+        elif composite_score < 0.45:
             recommendation = "SELL"
-            confidence = min(0.9, 0.5 + (0.35 - composite_score) * 2)
+            confidence = min(0.9, 0.5 + (0.45 - composite_score) * 3)
         else:
             recommendation = "HOLD"
             confidence = 0.6
@@ -314,6 +332,11 @@ class AdvancedPortfolioManagerAgent:
         if self.use_ml and ml_confidence > 0.6:
             ml_direction = "upward" if ml_score > 0.5 else "downward"
             reasoning_parts.append(f"ML model predicts {ml_direction} movement with {ml_confidence:.1%} confidence.")
+            
+            # Add accuracy information if available
+            if 'ml_prediction' in data and 'average_accuracy' in data['ml_prediction']:
+                avg_accuracy = data['ml_prediction']['average_accuracy']
+                reasoning_parts.append(f"Model avg accuracy: {avg_accuracy:.1%}.")
         
         reasoning_parts.append(f"Composite score: {composite_score:.2f} (Technical: {technical_score:.2f}, Sentiment: {sentiment_score:.2f}, Risk: {risk_score:.2f})")
         
@@ -347,11 +370,11 @@ class AdvancedPortfolioManagerAgent:
         confidence = 0.5
         reasoning = []
         
-        if rsi < 30 and sentiment in ('positive', 'neutral') and risk != 'High':
+        if rsi < 35 and sentiment in ('positive', 'neutral') and risk != 'High':
             recommendation = "BUY"
             confidence = 0.8
             reasoning.append("RSI indicates oversold, sentiment not negative, risk not high.")
-        elif rsi > 70 or sentiment == 'very_negative' or risk == 'High':
+        elif rsi > 65 or sentiment == 'very_negative' or risk == 'High':
             recommendation = "SELL"
             confidence = 0.8
             reasoning.append("RSI indicates overbought, or negative sentiment, or high risk.")

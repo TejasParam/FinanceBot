@@ -21,6 +21,11 @@ This folder contains files that are not actively used by the current agentic AI 
 ### Trading Integration
 - `alpaca_trader.py` - Alpaca trading integration (optional)
 
+### Redundant Documentation
+- `FINAL_STATUS.md` - Redundant with PROJECT_STRUCTURE.md
+- `IMPLEMENTATION_COMPLETE.md` - Redundant with README.md  
+- `IMPLEMENTATION_SUMMARY.md` - Older implementation summary (replaced by current docs)
+
 ## Current Active System
 
 The main agentic system uses:
@@ -46,3 +51,7 @@ These files were moved to backup to:
 4. Improve project organization and maintainability
 
 Last updated: July 13, 2025
+
+**Latest Changes:**
+- Moved redundant documentation files (FINAL_STATUS.md, IMPLEMENTATION_COMPLETE.md, IMPLEMENTATION_SUMMARY.md)
+- Kept only the most current and comprehensive documentation in main directory

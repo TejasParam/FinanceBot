@@ -20,12 +20,9 @@ The FinanceBot project has been organized for better maintainability and clarity
   - `coordinator.py` - Agent coordination and orchestration
 
 ### Analysis Modules
-- `ml_predictor.py` - Machine learning models and predictions
 - `backtest_engine.py` - Strategy backtesting and evaluation
 - `technical_analysis.py` - Technical analysis functions
 - `data_collection.py` - Market data collection utilities
-- `risk_manager.py` - Risk assessment and management
-- `news_analyst.py` - News sentiment analysis
 
 ## 🎮 **Demo & Test Files**
 
@@ -61,13 +58,19 @@ The FinanceBot project has been organized for better maintainability and clarity
 
 ## 🗄️ **Backup & Archive**
 
-- `.backup/` - **Hidden folder with legacy files**
-  - `portfolio_manager.py` - Original LLM-based manager
-  - `market_coordinator.py` - Legacy coordinator
-  - `market_coordinator_rule_based.py` - Legacy rule-based coordinator
-  - `quick_start.py` - Old quick start script
-  - `alpaca_trader.py` - Trading API integration
-  - `README.md` - Backup folder documentation
+- `.backup/` - **Hidden folder with legacy/unused files**
+  - `portfolio_manager.py` - Original non-agentic portfolio manager
+  - `market_coordinator.py` - Legacy non-agentic coordinator
+  - `market_coordinator_rule_based.py` - Legacy rule-based coordinator  
+  - `quick_start.py` - Old quick start script (replaced by advanced_demo.py)
+  - `ml_predictor.py` - Standalone ML prediction script
+  - `news_analyst.py` - Standalone news analysis script
+  - `risk_manager.py` - Standalone risk management script
+  - `complete_market_analysis.py` - Moved to demos/
+  - `market_scanner.py` - Moved to demos/
+  - `portfolio_builder.py` - Moved to demos/
+  - `alpaca_trader.py` - Trading API integration (optional)
+  - `BACKUP_INFO.md` - Documentation of backup contents
 
 ## 🚀 **Quick Start Guide**
 

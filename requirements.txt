@@ -16,3 +16,33 @@ seaborn
 ta-lib
 plotly
 joblib
+xgboost
+lightgbm
+tensorflow>=2.10.0
+
+# Enhanced News Sentiment
+textblob
+feedparser
+tweepy
+praw
+newsapi-python
+
+# Real-time processing
+websocket-client
+redis
+celery
+
+# Data storage
+influxdb-client
+pymongo
+sqlalchemy
+
+# Performance optimization
+ray[default]
+dask[complete]
+numba
+
+# API and Web
+fastapi
+uvicorn
+streamlit

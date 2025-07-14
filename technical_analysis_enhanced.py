@@ -3,14 +3,94 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-import talib
 from scipy import stats
 from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
 
+# Try to import talib, but make it optional
+try:
+    import talib
+    TALIB_AVAILABLE = True
+except ImportError:
+    TALIB_AVAILABLE = False
+    print("TA-Lib not available. Some advanced indicators will use fallback implementations.")
+
 # Import existing modules
 from data_collection import DataCollectionAgent
+
+# Fallback implementations for when TA-Lib is not available
+class TALibFallback:
+    """Simple fallback implementations for essential TA-Lib functions"""
+    
+    @staticmethod
+    def SMA(series, timeperiod):
+        """Simple Moving Average"""
+        return series.rolling(window=timeperiod).mean()
+    
+    @staticmethod
+    def EMA(series, timeperiod):
+        """Exponential Moving Average"""
+        return series.ewm(span=timeperiod, adjust=False).mean()
+    
+    @staticmethod
+    def RSI(series, timeperiod=14):
+        """Relative Strength Index"""
+        delta = series.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=timeperiod).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=timeperiod).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+    
+    @staticmethod
+    def MACD(series, fastperiod=12, slowperiod=26, signalperiod=9):
+        """MACD indicator"""
+        ema_fast = series.ewm(span=fastperiod, adjust=False).mean()
+        ema_slow = series.ewm(span=slowperiod, adjust=False).mean()
+        macd = ema_fast - ema_slow
+        signal = macd.ewm(span=signalperiod, adjust=False).mean()
+        hist = macd - signal
+        return macd, signal, hist
+    
+    @staticmethod
+    def BBANDS(series, timeperiod=20, nbdevup=2, nbdevdn=2):
+        """Bollinger Bands"""
+        sma = series.rolling(window=timeperiod).mean()
+        std = series.rolling(window=timeperiod).std()
+        upper = sma + (std * nbdevup)
+        lower = sma - (std * nbdevdn)
+        return upper, sma, lower
+    
+    @staticmethod
+    def MAX(series, timeperiod):
+        """Maximum value over period"""
+        return series.rolling(window=timeperiod).max()
+    
+    @staticmethod
+    def MIN(series, timeperiod):
+        """Minimum value over period"""
+        return series.rolling(window=timeperiod).min()
+    
+    @staticmethod
+    def ATR(high, low, close, timeperiod=14):
+        """Average True Range"""
+        tr1 = high - low
+        tr2 = abs(high - close.shift(1))
+        tr3 = abs(low - close.shift(1))
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        return tr.rolling(window=timeperiod).mean()
+    
+    @staticmethod
+    def ADX(high, low, close, timeperiod=14):
+        """Average Directional Index (simplified)"""
+        # Simplified ADX calculation
+        tr = TALibFallback.ATR(high, low, close, 1)
+        return tr.rolling(window=timeperiod).mean() / close.rolling(window=timeperiod).std() * 100
+
+# Use talib if available, otherwise use fallback
+if not TALIB_AVAILABLE:
+    talib = TALibFallback()
 
 class EnhancedTechnicalAnalyst:
     """

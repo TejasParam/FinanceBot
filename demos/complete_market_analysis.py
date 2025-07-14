@@ -19,7 +19,7 @@ import time
 try:
     from market_scanner import MarketScanner
     from portfolio_builder import PortfolioBuilder
-    from portfolio_manager_rule_based import AdvancedPortfolioManagerAgent
+    from agentic_portfolio_manager import AgenticPortfolioManager
     print("✅ Successfully imported all market analysis modules")
 except ImportError as e:
     print(f"❌ Failed to import modules: {e}")
@@ -34,7 +34,7 @@ class CompleteMarketAnalysis:
         self.use_ml = use_ml
         self.scanner = MarketScanner(use_ml=use_ml, max_workers=3)
         self.builder = PortfolioBuilder(self.scanner)
-        self.manager = AdvancedPortfolioManagerAgent(use_ml=use_ml)
+        self.manager = AgenticPortfolioManager(use_ml=use_ml)
         
     def run_complete_analysis(self, portfolio_value: float = 100000, universe: str = "large_cap"):
         """Run complete market analysis workflow"""

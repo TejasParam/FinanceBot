@@ -13,7 +13,7 @@ import concurrent.futures
 from datetime import datetime
 from typing import Dict, List, Any, Tuple
 import pandas as pd
-from portfolio_manager_rule_based import AdvancedPortfolioManagerAgent
+from agentic_portfolio_manager import AgenticPortfolioManager
 
 class MarketScanner:
     """
@@ -22,7 +22,7 @@ class MarketScanner:
     """
     
     def __init__(self, use_ml: bool = True, max_workers: int = 4):
-        self.manager = AdvancedPortfolioManagerAgent(use_ml=use_ml)
+        self.manager = AgenticPortfolioManager(use_ml=use_ml)
         self.max_workers = max_workers
         self.results = []
         self.scan_timestamp = None

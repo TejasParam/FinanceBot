@@ -9,9 +9,14 @@ based on ML predictions, risk metrics, and modern portfolio theory principles.
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Any, Tuple
-from market_scanner import MarketScanner
 from datetime import datetime
 import json
+
+# Handle imports for both direct execution and module import
+try:
+    from market_scanner import MarketScanner
+except ImportError:
+    from .market_scanner import MarketScanner
 
 class PortfolioBuilder:
     """

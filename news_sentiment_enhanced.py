@@ -8,10 +8,17 @@ import numpy as np
 from datetime import datetime, timedelta
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import feedparser
 import re
 from textblob import TextBlob
 import yfinance as yf
+
+# Make feedparser optional
+try:
+    import feedparser
+    FEEDPARSER_AVAILABLE = True
+except ImportError:
+    FEEDPARSER_AVAILABLE = False
+    print("feedparser not available. RSS feed functionality will be limited.")
 
 # Advanced NLP imports
 try:

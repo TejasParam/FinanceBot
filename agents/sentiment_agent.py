@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing import Dict, Any, List
 from .base_agent import BaseAgent
-from news_analyst import news_analyst
+from news_sentiment_enhanced import EnhancedNewsSentimentAnalyzer
 import requests
 import time
 import random
@@ -22,7 +22,7 @@ class SentimentAnalysisAgent(BaseAgent):
     def __init__(self):
         super().__init__("SentimentAnalysis")
         try:
-            self.news_analyzer = news_analyst()
+            self.news_analyzer = EnhancedNewsSentimentAnalyzer()
         except Exception as e:
             print(f"Warning: Could not initialize news analyzer: {e}")
             self.news_analyzer = None

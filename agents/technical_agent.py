@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing import Dict, Any
 from .base_agent import BaseAgent
-from technical_analysis import technical_analyst_agent
+from technical_analysis_enhanced import EnhancedTechnicalAnalyst
 from data_collection import DataCollectionAgent
 
 class TechnicalAnalysisAgent(BaseAgent):
@@ -20,7 +20,7 @@ class TechnicalAnalysisAgent(BaseAgent):
     def __init__(self):
         super().__init__("TechnicalAnalysis")
         self.data_collector = DataCollectionAgent()
-        self.technical_analyzer = technical_analyst_agent()
+        self.technical_analyzer = EnhancedTechnicalAnalyst()
         
     def analyze(self, ticker: str, period: str = "6mo", **kwargs) -> Dict[str, Any]:
         """

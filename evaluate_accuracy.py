@@ -20,7 +20,7 @@ import time
 from datetime import datetime, timedelta
 
 from agentic_portfolio_manager import AgenticPortfolioManager
-from ml_predictor import MLPredictor
+from ml_predictor_enhanced import MLPredictor
 import joblib
 
 def evaluate_ml_models():

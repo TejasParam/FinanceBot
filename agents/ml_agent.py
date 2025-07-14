@@ -11,7 +11,7 @@ from .base_agent import BaseAgent
 
 # Handle ML imports gracefully
 try:
-    from ml_predictor import MLPredictor
+    from ml_predictor_enhanced import MLPredictor
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False

@@ -1,0 +1,1 @@
+# Make demos a proper Python package

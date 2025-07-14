@@ -18,7 +18,7 @@ except ImportError:
 # PyPortfolioOpt imports
 try:
     from pypfopt import EfficientFrontier, risk_models, expected_returns
-    from pypfopt import BlackLittermanModel, plotting
+    from pypfopt import BlackLittermanModel, plotting, objective_functions
     from pypfopt import HRPOpt, CLA
     PYPFOPT_AVAILABLE = True
 except ImportError:
@@ -200,50 +200,136 @@ class EnhancedPortfolioOptimizer:
         if not PYPFOPT_AVAILABLE:
             return {'error': 'PyPortfolioOpt required for Black-Litterman optimization'}
         
-        # Market cap weights (using price as proxy)
+        # Market cap weights (using price * volume as proxy for market cap)
+        # In practice, you'd use actual market cap data
         market_caps = prices.iloc[-1]
+        
+        # Get volume data for better market cap approximation
+        volume_data = {}
+        for ticker in prices.columns:
+            try:
+                stock = yf.Ticker(ticker)
+                info = stock.info
+                shares = info.get('sharesOutstanding', info.get('impliedSharesOutstanding', 1e9))
+                volume_data[ticker] = shares
+            except:
+                volume_data[ticker] = 1e9  # Default if data unavailable
+        
+        # Calculate market cap weights
+        for ticker in prices.columns:
+            market_caps[ticker] = prices[ticker].iloc[-1] * volume_data.get(ticker, 1e9)
+        
         mcap_weights = market_caps / market_caps.sum()
         
         # Calculate market implied returns
         S = risk_models.CovarianceShrinkage(returns).ledoit_wolf()
-        delta = 2.5  # Risk aversion coefficient
+        
+        # Dynamic risk aversion based on market conditions
+        market_vol = returns.mean(axis=1).std() * np.sqrt(252)
+        delta = 2.5 / (1 + market_vol)  # Adjust risk aversion based on market volatility
+        
         market_implied_returns = delta * S.dot(mcap_weights)
         
         # Create Black-Litterman model
         bl = BlackLittermanModel(S, pi=market_implied_returns)
         
-        # Add views if provided
-        if views:
-            viewdict = views
-            view_confidences = []
+        # Enhanced view processing
+        if views and isinstance(views, dict):
+            # Support different view types
+            if 'absolute' in views:
+                # Absolute views: "AAPL will return 15%"
+                viewdict = views['absolute']
+                view_confidences = views.get('confidence', {})
+                
+                # Process each view
+                processed_views = {}
+                processed_confidences = []
+                
+                for ticker, view_return in viewdict.items():
+                    if ticker in returns.columns:
+                        processed_views[ticker] = view_return
+                        # Use provided confidence or calculate based on view strength
+                        conf = view_confidences.get(ticker, min(abs(view_return) * 5, 0.8))
+                        processed_confidences.append(conf)
+                
+                if processed_views:
+                    bl.bl_returns(processed_views, processed_confidences)
             
-            for ticker in viewdict:
-                # Confidence based on view strength
-                confidence = min(abs(viewdict[ticker]) * 10, 1.0)
-                view_confidences.append(confidence)
+            elif 'relative' in views:
+                # Relative views: "AAPL will outperform MSFT by 5%"
+                relative_views = views['relative']
+                
+                for view in relative_views:
+                    asset1 = view.get('asset1')
+                    asset2 = view.get('asset2')
+                    outperformance = view.get('outperformance', 0)
+                    confidence = view.get('confidence', 0.5)
+                    
+                    if asset1 in returns.columns and asset2 in returns.columns:
+                        # Create view matrix for relative view
+                        view_matrix = pd.Series(0, index=returns.columns)
+                        view_matrix[asset1] = 1
+                        view_matrix[asset2] = -1
+                        
+                        bl.bl_returns(
+                            {asset1: market_implied_returns[asset1] + outperformance,
+                             asset2: market_implied_returns[asset2]},
+                            [confidence, confidence]
+                        )
             
-            bl.bl_returns(viewdict, view_confidences)
+            else:
+                # Legacy simple views format
+                viewdict = views
+                view_confidences = []
+                
+                for ticker in viewdict:
+                    confidence = min(abs(viewdict[ticker]) * 10, 1.0)
+                    view_confidences.append(confidence)
+                
+                bl.bl_returns(viewdict, view_confidences)
         
-        # Get posterior returns
+        # Get posterior returns and covariance
         ret_bl = bl.bl_returns()
+        S_bl = bl.bl_cov()
         
         # Optimize with posterior returns
-        ef = EfficientFrontier(ret_bl, S)
+        ef = EfficientFrontier(ret_bl, S_bl)
         
         if constraints:
             self._apply_pypfopt_constraints(ef, constraints)
         
-        ef.max_sharpe(risk_free_rate=self.risk_free_rate)
-        weights = ef.clean_weights()
+        # Choose optimization based on investor preference
+        optimization_method = constraints.get('bl_optimization', 'max_sharpe') if constraints else 'max_sharpe'
         
+        if optimization_method == 'max_sharpe':
+            ef.max_sharpe(risk_free_rate=self.risk_free_rate)
+        elif optimization_method == 'min_volatility':
+            ef.min_volatility()
+        elif optimization_method == 'efficient_return' and 'target_return' in constraints:
+            ef.efficient_return(constraints['target_return'])
+        else:
+            ef.max_sharpe(risk_free_rate=self.risk_free_rate)
+        
+        weights = ef.clean_weights()
         performance = ef.portfolio_performance(verbose=False, risk_free_rate=self.risk_free_rate)
+        
+        # Calculate view impact
+        prior_returns = dict(market_implied_returns)
+        posterior_returns = dict(ret_bl)
+        view_impact = {
+            ticker: posterior_returns[ticker] - prior_returns[ticker] 
+            for ticker in returns.columns
+        }
         
         return {
             'weights': weights,
             'expected_return': performance[0],
             'volatility': performance[1],
             'sharpe_ratio': performance[2],
-            'posterior_returns': dict(ret_bl)
+            'market_implied_returns': prior_returns,
+            'posterior_returns': posterior_returns,
+            'view_impact': view_impact,
+            'risk_aversion_parameter': delta
         }
     
     def _optimize_risk_parity(self, returns: pd.DataFrame) -> Dict[str, Any]:
@@ -464,18 +550,95 @@ class EnhancedPortfolioOptimizer:
     def _apply_pypfopt_constraints(self, ef: Any, constraints: Dict[str, Any]):
         """Apply constraints to PyPortfolioOpt optimizer"""
         
-        # Weight bounds
+        # Weight bounds (e.g., {'AAPL': (0.05, 0.30), 'GOOGL': (0.10, 0.25)})
         if 'weight_bounds' in constraints:
-            ef.add_constraint(lambda w: w >= constraints['weight_bounds'][0])
-            ef.add_constraint(lambda w: w <= constraints['weight_bounds'][1])
+            if isinstance(constraints['weight_bounds'], dict):
+                # Individual asset bounds
+                for asset, (min_w, max_w) in constraints['weight_bounds'].items():
+                    asset_idx = ef.tickers.index(asset) if asset in ef.tickers else None
+                    if asset_idx is not None:
+                        ef.add_constraint(lambda w, idx=asset_idx: w[idx] >= min_w)
+                        ef.add_constraint(lambda w, idx=asset_idx: w[idx] <= max_w)
+            else:
+                # Global bounds
+                ef.add_constraint(lambda w: w >= constraints['weight_bounds'][0])
+                ef.add_constraint(lambda w: w <= constraints['weight_bounds'][1])
         
         # Sector constraints
         if 'sector_constraints' in constraints:
             for sector, (min_weight, max_weight) in constraints['sector_constraints'].items():
                 sector_assets = constraints.get('sector_mapper', {}).get(sector, [])
                 if sector_assets:
-                    ef.add_constraint(lambda w: sum(w[i] for i in sector_assets) >= min_weight)
-                    ef.add_constraint(lambda w: sum(w[i] for i in sector_assets) <= max_weight)
+                    sector_indices = [ef.tickers.index(asset) for asset in sector_assets if asset in ef.tickers]
+                    if sector_indices:
+                        ef.add_constraint(lambda w, indices=sector_indices: sum(w[i] for i in indices) >= min_weight)
+                        ef.add_constraint(lambda w, indices=sector_indices: sum(w[i] for i in indices) <= max_weight)
+        
+        # Maximum number of assets constraint
+        if 'max_assets' in constraints:
+            max_assets = constraints['max_assets']
+            # This requires a binary variable for each asset (more complex)
+            # For now, we'll use L2 regularization to encourage sparsity
+            ef.add_objective(objective_functions.L2_reg, gamma=0.1)
+        
+        # Turnover constraint (limit portfolio changes)
+        if 'max_turnover' in constraints and 'current_weights' in constraints:
+            current = constraints['current_weights']
+            max_turnover = constraints['max_turnover']
+            
+            for i, ticker in enumerate(ef.tickers):
+                current_weight = current.get(ticker, 0)
+                ef.add_constraint(lambda w, idx=i, curr=current_weight, max_t=max_turnover: 
+                                w[idx] - curr <= max_t)
+                ef.add_constraint(lambda w, idx=i, curr=current_weight, max_t=max_turnover: 
+                                curr - w[idx] <= max_t)
+        
+        # Risk budget constraints (contribution to portfolio risk)
+        if 'risk_budget' in constraints:
+            risk_budgets = constraints['risk_budget']
+            # This is complex to implement exactly, using approximation
+            for asset, max_risk_contrib in risk_budgets.items():
+                asset_idx = ef.tickers.index(asset) if asset in ef.tickers else None
+                if asset_idx is not None:
+                    # Approximate risk contribution with weight * volatility
+                    asset_vol = np.sqrt(ef.cov_matrix[asset_idx, asset_idx])
+                    ef.add_constraint(lambda w, idx=asset_idx, vol=asset_vol, max_rc=max_risk_contrib: 
+                                    w[idx] * vol <= max_rc)
+        
+        # ESG constraints
+        if 'esg_scores' in constraints and 'min_esg_score' in constraints:
+            esg_scores = constraints['esg_scores']
+            min_score = constraints['min_esg_score']
+            
+            # Portfolio weighted ESG score must exceed minimum
+            score_array = np.array([esg_scores.get(ticker, 0) for ticker in ef.tickers])
+            ef.add_constraint(lambda w: np.dot(w, score_array) >= min_score)
+        
+        # Liquidity constraints (minimum daily volume in dollars)
+        if 'min_liquidity' in constraints and 'daily_volumes' in constraints:
+            min_liquidity = constraints['min_liquidity']
+            daily_volumes = constraints['daily_volumes']
+            
+            for i, ticker in enumerate(ef.tickers):
+                volume = daily_volumes.get(ticker, 0)
+                if volume < min_liquidity:
+                    # Force weight to 0 for illiquid assets
+                    ef.add_constraint(lambda w, idx=i: w[idx] == 0)
+        
+        # Correlation constraints (limit correlation between holdings)
+        if 'max_correlation' in constraints:
+            max_corr = constraints['max_correlation']
+            corr_matrix = ef.cov_matrix.copy()
+            
+            # Normalize to correlation matrix
+            std_devs = np.sqrt(np.diag(corr_matrix))
+            corr_matrix = corr_matrix / np.outer(std_devs, std_devs)
+            
+            # For highly correlated pairs, limit combined weight
+            for i in range(len(ef.tickers)):
+                for j in range(i+1, len(ef.tickers)):
+                    if abs(corr_matrix[i, j]) > max_corr:
+                        ef.add_constraint(lambda w, idx1=i, idx2=j: w[idx1] + w[idx2] <= 0.3)
     
     def _calculate_portfolio_metrics(self, weights: Dict[str, float], 
                                    returns: pd.DataFrame) -> Dict[str, float]:

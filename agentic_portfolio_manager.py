@@ -11,8 +11,10 @@ import logging
 from datetime import datetime, timedelta
 import pandas as pd
 
-# Import existing components
-from portfolio_manager_rule_based import AdvancedPortfolioManagerAgent
+# Import enhanced components
+from portfolio_optimizer import EnhancedPortfolioOptimizer
+from risk_manager_enhanced import EnhancedRiskManager
+from backtest_engine_enhanced import EnhancedBacktestEngine
 
 # Import agentic system
 from agents import AgentCoordinator
@@ -36,10 +38,12 @@ class AgenticPortfolioManager:
             parallel_execution=parallel_execution
         )
         
-        # Initialize legacy portfolio manager for backtesting and other features
-        self.legacy_manager = AdvancedPortfolioManagerAgent(use_ml=use_ml)
+        # Initialize enhanced components
+        self.portfolio_optimizer = EnhancedPortfolioOptimizer()
+        self.risk_manager = EnhancedRiskManager()
+        self.backtest_engine = EnhancedBacktestEngine()
         
-        # Store configuration for compatibility with legacy demo functions
+        # Store configuration for compatibility
         self.use_ml = use_ml
         self.use_llm = use_llm
         self.parallel_execution = parallel_execution

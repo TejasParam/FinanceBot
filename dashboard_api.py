@@ -3,7 +3,7 @@ Dashboard API for Portfolio Visualization
 Provides REST API endpoints for the trading dashboard
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import json
 import os
@@ -253,6 +253,12 @@ class DashboardAPI:
         except Exception:
             return 0
 
+# Serve the dashboard HTML
+@app.route('/')
+def serve_dashboard():
+    """Serve the dashboard HTML file"""
+    return send_file('dashboard.html')
+
 # Additional utility endpoints
 
 @app.route('/api/health', methods=['GET'])
@@ -282,5 +288,18 @@ def get_trading_parameters():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    # Print startup message
+    print("\n" + "="*60)
+    print("🚀 ALPACA TRADING BOT DASHBOARD")
+    print("="*60)
+    print("\n📊 Dashboard URL: http://localhost:5001")
+    print("📊 Alternative: http://127.0.0.1:5001")
+    print("\n✅ API Endpoints:")
+    print("   - http://localhost:5001/api/portfolio/overview")
+    print("   - http://localhost:5001/api/portfolio/positions")
+    print("   - http://localhost:5001/api/trades/history")
+    print("\nPress CTRL+C to stop the dashboard server")
+    print("="*60 + "\n")
+    
     # Run the Flask app
     app.run(debug=True, host='0.0.0.0', port=5001)

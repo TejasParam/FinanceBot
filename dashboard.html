@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlpacaBot Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .profit { color: #10b981; }
+        .loss { color: #ef4444; }
+        .loading { opacity: 0.5; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">AlpacaBot Trading Dashboard</h1>
+            <p class="text-gray-600 mt-2">Automated AI-Powered Portfolio Management</p>
+        </div>
+
+        <!-- Portfolio Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Portfolio Value</h3>
+                <p class="text-2xl font-bold" id="portfolio-value">$0.00</p>
+                <p class="text-sm mt-2" id="total-return">0.00%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Cash Available</h3>
+                <p class="text-2xl font-bold" id="cash-value">$0.00</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Positions</h3>
+                <p class="text-2xl font-bold" id="num-positions">0</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Unrealized P&L</h3>
+                <p class="text-2xl font-bold" id="unrealized-pnl">$0.00</p>
+                <p class="text-sm mt-2" id="unrealized-pnl-pct">0.00%</p>
+            </div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Portfolio Performance</h2>
+            <canvas id="performance-chart" height="100"></canvas>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-4">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600" data-tab="positions">
+                        Positions
+                    </button>
+                    <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="signals">
+                        Trading Signals
+                    </button>
+                    <button class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="trades">
+                        Trade History
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tab-content">
+            <!-- Positions Tab -->
+            <div id="positions-tab" class="tab-content">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Cost</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market Value</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">P&L</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Signals Tab -->
+            <div id="signals-tab" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ML Score</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sentiment</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reasons</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Executed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="signals-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Trades Tab -->
+            <div id="trades-tab" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trades-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Sharpe Ratio</h3>
+                <p class="text-2xl font-bold" id="sharpe-ratio">0.00</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Win Rate</h3>
+                <p class="text-2xl font-bold" id="win-rate">0%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Portfolio Volatility</h3>
+                <p class="text-2xl font-bold" id="volatility">0%</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-sm text-gray-600 mb-2">Daily VaR (95%)</h3>
+                <p class="text-2xl font-bold" id="var">0%</p>
+            </div>
+        </div>
+
+        <!-- Last Update -->
+        <div class="text-center text-gray-500 text-sm mt-6">
+            Last updated: <span id="last-update">Never</span>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let performanceChart = null;
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+                
+                // Update button styles
+                document.querySelectorAll('.tab-button').forEach(b => {
+                    b.classList.remove('border-blue-500', 'text-blue-600');
+                    b.classList.add('border-transparent', 'text-gray-500');
+                });
+                button.classList.remove('border-transparent', 'text-gray-500');
+                button.classList.add('border-blue-500', 'text-blue-600');
+                
+                // Show/hide content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`${tab}-tab`).classList.remove('hidden');
+            });
+        });
+
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(value);
+        }
+
+        // Format percentage
+        function formatPercent(value) {
+            const formatted = (value * 100).toFixed(2) + '%';
+            return value >= 0 ? '+' + formatted : formatted;
+        }
+
+        // Load portfolio overview
+        async function loadPortfolioOverview() {
+            try {
+                const response = await fetch(`${API_BASE}/portfolio/overview`);
+                const data = await response.json();
+                
+                document.getElementById('portfolio-value').textContent = formatCurrency(data.portfolio_value);
+                document.getElementById('cash-value').textContent = formatCurrency(data.cash);
+                document.getElementById('num-positions').textContent = data.num_positions;
+                document.getElementById('unrealized-pnl').textContent = formatCurrency(data.unrealized_pnl);
+                document.getElementById('unrealized-pnl-pct').textContent = data.unrealized_pnl_pct;
+                
+                const returnElement = document.getElementById('total-return');
+                returnElement.textContent = data.total_return_pct;
+                returnElement.className = data.total_return >= 0 ? 'text-sm mt-2 profit' : 'text-sm mt-2 loss';
+                
+                const pnlElement = document.getElementById('unrealized-pnl');
+                pnlElement.className = data.unrealized_pnl >= 0 ? 'text-2xl font-bold profit' : 'text-2xl font-bold loss';
+                
+                document.getElementById('last-update').textContent = new Date(data.last_updated).toLocaleString();
+            } catch (error) {
+                console.error('Error loading portfolio overview:', error);
+            }
+        }
+
+        // Load positions
+        async function loadPositions() {
+            try {
+                const response = await fetch(`${API_BASE}/portfolio/positions`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('positions-tbody');
+                tbody.innerHTML = '';
+                
+                data.positions.forEach(position => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${position.symbol}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${position.quantity}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(position.avg_cost)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(position.current_price)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(position.market_value)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${position.unrealized_pnl >= 0 ? 'profit' : 'loss'}">
+                            ${formatCurrency(position.unrealized_pnl)} (${position.unrealized_pnl_pct})
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${(position.weight * 100).toFixed(1)}%</td>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading positions:', error);
+            }
+        }
+
+        // Load trading signals
+        async function loadSignals() {
+            try {
+                const response = await fetch(`${API_BASE}/trades/signals`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('signals-tbody');
+                tbody.innerHTML = '';
+                
+                data.signals.forEach(signal => {
+                    const row = tbody.insertRow();
+                    const actionClass = signal.action === 'BUY' ? 'text-green-600' : 
+                                      signal.action === 'SELL' ? 'text-red-600' : 'text-gray-600';
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(signal.timestamp).toLocaleTimeString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${signal.symbol}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${actionClass}">${signal.action}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${signal.confidence}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${signal.ml_score}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${signal.sentiment_score.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${signal.reasons.join('; ')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            ${signal.executed ? '✓' : '✗'}
+                        </td>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading signals:', error);
+            }
+        }
+
+        // Load trade history
+        async function loadTrades() {
+            try {
+                const response = await fetch(`${API_BASE}/trades/history`);
+                const data = await response.json();
+                
+                const tbody = document.getElementById('trades-tbody');
+                tbody.innerHTML = '';
+                
+                data.trades.forEach(trade => {
+                    const row = tbody.insertRow();
+                    const actionClass = trade.action === 'BUY' ? 'text-green-600' : 'text-red-600';
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(trade.timestamp).toLocaleString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${trade.symbol}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${actionClass}">${trade.action}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${trade.quantity}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${trade.reason}</td>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading trades:', error);
+            }
+        }
+
+        // Load performance metrics
+        async function loadPerformanceMetrics() {
+            try {
+                const response = await fetch(`${API_BASE}/performance/metrics`);
+                const data = await response.json();
+                
+                document.getElementById('sharpe-ratio').textContent = data.sharpe_ratio.toFixed(2);
+                document.getElementById('win-rate').textContent = (data.win_rate * 100).toFixed(0) + '%';
+                document.getElementById('volatility').textContent = (data.risk_metrics.portfolio_volatility * 100).toFixed(1) + '%';
+                document.getElementById('var').textContent = (data.risk_metrics.var_95 * 100).toFixed(1) + '%';
+            } catch (error) {
+                console.error('Error loading performance metrics:', error);
+            }
+        }
+
+        // Load performance chart
+        async function loadPerformanceChart() {
+            try {
+                const response = await fetch(`${API_BASE}/performance/chart`);
+                const data = await response.json();
+                
+                const ctx = document.getElementById('performance-chart').getContext('2d');
+                
+                if (performanceChart) {
+                    performanceChart.destroy();
+                }
+                
+                performanceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.chart_data.map(d => d.date),
+                        datasets: [{
+                            label: 'Portfolio Value',
+                            data: data.chart_data.map(d => d.value),
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                ticks: {
+                                    callback: function(value) {
+                                        return formatCurrency(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading performance chart:', error);
+            }
+        }
+
+        // Refresh all data
+        async function refreshData() {
+            await Promise.all([
+                loadPortfolioOverview(),
+                loadPositions(),
+                loadSignals(),
+                loadTrades(),
+                loadPerformanceMetrics(),
+                loadPerformanceChart()
+            ]);
+        }
+
+        // Initial load
+        refreshData();
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshData, 30000);
+    </script>
+</body>
+</html>

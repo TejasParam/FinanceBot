@@ -16,7 +16,7 @@ from alpaca.trading.enums import OrderSide, TimeInForce, OrderStatus, AssetClass
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest, StockLatestQuoteRequest
 from alpaca.data.timeframe import TimeFrame
-from alpaca.trading.models import Position, Order, Account
+from alpaca.trading.models import Position, Order, TradeAccount
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 

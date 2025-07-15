@@ -13,9 +13,13 @@ import schedule
 from datetime import datetime, time as dt_time
 import argparse
 from typing import Dict
+from dotenv import load_dotenv
 
 from alpaca_integration import AlpacaTradingBot
 from automated_portfolio_manager import AutomatedPortfolioManager
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(
@@ -53,15 +57,35 @@ class TradingBotRunner:
         self.last_health_check = datetime.now()
         
     def _load_config(self, config_file: str) -> Dict:
-        """Load configuration from file"""
-        if not os.path.exists(config_file):
-            logger.error(f"Config file {config_file} not found!")
-            logger.info("Creating template config file...")
-            self._create_template_config(config_file)
+        """Load configuration from file or environment variables"""
+        config = {}
+        
+        # Try to load from config file if it exists
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+        
+        # Use environment variables as fallback or override
+        config['alpaca_api_key'] = os.getenv('alpaca_key', config.get('alpaca_api_key'))
+        config['alpaca_secret_key'] = os.getenv('alpaca_secret', config.get('alpaca_secret_key'))
+        
+        # Check if we have the required credentials
+        if not config.get('alpaca_api_key') or not config.get('alpaca_secret_key'):
+            logger.error("Alpaca API credentials not found!")
+            logger.info("Please set alpaca_key and alpaca_secret in .env file or create config.json")
+            if not os.path.exists(config_file):
+                self._create_template_config(config_file)
             sys.exit(1)
-            
-        with open(config_file, 'r') as f:
-            return json.load(f)
+        
+        # Set defaults for other config values
+        config.setdefault('initial_capital', 100000)
+        config.setdefault('trading_hours', {'start': '09:30', 'end': '16:00'})
+        config.setdefault('rebalance_frequency', 'daily')
+        config.setdefault('risk_check_interval_minutes', 5)
+        config.setdefault('signal_generation_interval_minutes', 15)
+        
+        logger.info("Configuration loaded successfully")
+        return config
     
     def _create_template_config(self, config_file: str):
         """Create a template configuration file"""

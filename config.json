@@ -1,0 +1,12 @@
+{
+  "alpaca_api_key": "YOUR_ALPACA_API_KEY",
+  "alpaca_secret_key": "YOUR_ALPACA_SECRET_KEY",
+  "initial_capital": 100000,
+  "trading_hours": {
+    "start": "09:30",
+    "end": "16:00"
+  },
+  "rebalance_frequency": "daily",
+  "risk_check_interval_minutes": 5,
+  "signal_generation_interval_minutes": 15
+}

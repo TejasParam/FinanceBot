@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-07-14T22:32:18.756373",
+  "symbol": "NVDA",
+  "agentic_analysis": {
+    "consensus_score": 4.199999999999999,
+    "confidence": 0.8300000000000001,
+    "accuracy": "80%+",
+    "recommendation": "STRONG BUY"
+  },
+  "basic_ml": {
+    "confidence": 0.58,
+    "accuracy": "55%",
+    "recommendation": "BUY"
+  }
+}

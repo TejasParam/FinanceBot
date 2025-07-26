@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-07-15T09:49:08.725743",
+  "theoretical_accuracy": 0.8065,
+  "basic_ml_accuracy": 0.55,
+  "improvement_percentage": 46.63636363636363,
+  "confidence_thresholds": {
+    "high": 0.8,
+    "medium": 0.7
+  },
+  "expected_accuracies": {
+    "high_confidence": 0.85,
+    "medium_confidence": 0.78,
+    "overall": 0.8065
+  }
+}

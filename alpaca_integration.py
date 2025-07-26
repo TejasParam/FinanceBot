@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+import time
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderStatus, AssetClass
@@ -57,21 +58,41 @@ class AlpacaTradingBot:
         self.orders = []
         
     def get_account_info(self) -> Dict:
-        """Get current account information"""
-        try:
-            self.account = self.trading_client.get_account()
-            return {
-                'buying_power': float(self.account.buying_power),
-                'portfolio_value': float(self.account.portfolio_value),
-                'cash': float(self.account.cash),
-                'equity': float(self.account.equity),
-                'pattern_day_trader': self.account.pattern_day_trader,
-                'trading_blocked': self.account.trading_blocked,
-                'account_blocked': self.account.account_blocked
-            }
-        except Exception as e:
-            self.logger.error(f"Error getting account info: {e}")
-            return None
+        """Get current account information with retry logic"""
+        max_retries = 3
+        retry_delay = 2  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                self.account = self.trading_client.get_account()
+                return {
+                    'buying_power': float(self.account.buying_power),
+                    'portfolio_value': float(self.account.portfolio_value),
+                    'cash': float(self.account.cash),
+                    'equity': float(self.account.equity),
+                    'pattern_day_trader': self.account.pattern_day_trader,
+                    'trading_blocked': self.account.trading_blocked,
+                    'account_blocked': self.account.account_blocked
+                }
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    if "timed out" in str(e).lower() or "timeout" in str(e).lower():
+                        self.logger.warning(f"Alpaca API timeout (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
+                        time.sleep(retry_delay)
+                        continue
+                
+                self.logger.error(f"Error getting account info after {attempt + 1} attempts: {e}")
+                # Return default values instead of None to prevent crashes
+                return {
+                    'buying_power': 0.0,
+                    'portfolio_value': 0.0,
+                    'cash': 0.0,
+                    'equity': 0.0,
+                    'pattern_day_trader': False,
+                    'trading_blocked': True,  # Block trading on error
+                    'account_blocked': False,
+                    'error': str(e)
+                }
     
     def get_positions(self) -> Dict[str, Position]:
         """Get all current positions"""

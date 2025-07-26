@@ -41,7 +41,7 @@ class SentimentAnalysisAgent(BaseAgent):
             # Use existing news analyst if available
             if self.news_analyzer:
                 try:
-                    news_data = self.news_analyzer.analyze_stock_news(ticker)
+                    news_data = self.news_analyzer.analyze_stock_sentiment(ticker)
                     return self._process_news_data(ticker, news_data)
                 except Exception as e:
                     print(f"News analyzer failed, using fallback: {e}")

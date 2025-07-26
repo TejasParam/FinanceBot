@@ -1,0 +1,166 @@
+{
+  "accuracy": 0.35,
+  "total_trades": 20,
+  "trades": [
+    {
+      "date": "2023-01-20",
+      "symbol": "BAC",
+      "signal": "SELL",
+      "confidence": 0.85,
+      "return_3d": 0.03013309312514218,
+      "success": false
+    },
+    {
+      "date": "2023-02-04",
+      "symbol": "UNH",
+      "signal": "SELL",
+      "confidence": 0.88,
+      "return_3d": 0.029045482310854184,
+      "success": false
+    },
+    {
+      "date": "2023-03-11",
+      "symbol": "JPM",
+      "signal": "SELL",
+      "confidence": 0.85,
+      "return_3d": -0.021698623243351683,
+      "success": true
+    },
+    {
+      "date": "2023-03-16",
+      "symbol": "MSFT",
+      "signal": "BUY",
+      "confidence": 0.88,
+      "return_3d": -0.008761760606263365,
+      "success": false
+    },
+    {
+      "date": "2023-03-21",
+      "symbol": "AMZN",
+      "signal": "BUY",
+      "confidence": 0.85,
+      "return_3d": -0.024649670429267755,
+      "success": false
+    },
+    {
+      "date": "2023-05-10",
+      "symbol": "AAPL",
+      "signal": "BUY",
+      "confidence": 0.88,
+      "return_3d": -0.007213512005966148,
+      "success": false
+    },
+    {
+      "date": "2023-05-20",
+      "symbol": "NVDA",
+      "signal": "BUY",
+      "confidence": 0.88,
+      "return_3d": 0.21481580430442498,
+      "success": true
+    },
+    {
+      "date": "2023-05-25",
+      "symbol": "WMT",
+      "signal": "SELL",
+      "confidence": 0.85,
+      "return_3d": 0.0048576391387612555,
+      "success": false
+    },
+    {
+      "date": "2023-06-09",
+      "symbol": "GS",
+      "signal": "BUY",
+      "confidence": 0.85,
+      "return_3d": 0.007142659302266721,
+      "success": true
+    },
+    {
+      "date": "2023-07-24",
+      "symbol": "JNJ",
+      "signal": "BUY",
+      "confidence": 0.85,
+      "return_3d": 0.015255893966493489,
+      "success": true
+    },
+    {
+      "date": "2023-08-08",
+      "symbol": "AMZN",
+      "signal": "BUY",
+      "confidence": 0.88,
+      "return_3d": -0.010933248196401133,
+      "success": false
+    },
+    {
+      "date": "2023-08-23",
+      "symbol": "NVDA",
+      "signal": "BUY",
+      "confidence": 0.85,
+      "return_3d": -0.005964071528351457,
+      "success": false
+    },
+    {
+      "date": "2023-08-23",
+      "symbol": "COST",
+      "signal": "SELL",
+      "confidence": 0.85,
+      "return_3d": -0.006761441469053043,
+      "success": false
+    },
+    {
+      "date": "2023-09-02",
+      "symbol": "CRM",
+      "signal": "BUY",
+      "confidence": 0.85,
+      "return_3d": 0.01458031185070621,
+      "success": true
+    },
+    {
+      "date": "2023-09-22",
+      "symbol": "MSFT",
+      "signal": "SELL",
+      "confidence": 0.85,
+      "return_3d": -0.013312080156177488,
+      "success": true
+    },
+    {
+      "date": "2023-10-17",
+      "symbol": "NFLX",
+      "signal": "SELL",
+      "confidence": 0.88,
+      "return_3d": 0.12717865197100983,
+      "success": false
+    },
+    {
+      "date": "2023-10-27",
+      "symbol": "AMZN",
+      "signal": "SELL",
+      "confidence": 0.88,
+      "return_3d": 0.07249101527389999,
+      "success": false
+    },
+    {
+      "date": "2023-12-01",
+      "symbol": "UNH",
+      "signal": "BUY",
+      "confidence": 0.88,
+      "return_3d": 0.004331633390863854,
+      "success": false
+    },
+    {
+      "date": "2023-12-06",
+      "symbol": "PFE",
+      "signal": "SELL",
+      "confidence": 0.85,
+      "return_3d": -0.0052102031379157735,
+      "success": false
+    },
+    {
+      "date": "2023-12-11",
+      "symbol": "AMD",
+      "signal": "BUY",
+      "confidence": 0.88,
+      "return_3d": 0.02670929424952212,
+      "success": true
+    }
+  ]
+}

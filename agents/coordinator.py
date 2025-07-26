@@ -18,6 +18,9 @@ from .ml_agent import MLPredictionAgent
 from .regime_agent import RegimeDetectionAgent
 from .fundamental_agent import FundamentalAnalysisAgent
 from .llm_agent import LLMExplanationAgent
+from .market_timing_agent import MarketTimingAgent
+from .volatility_agent import VolatilityAnalysisAgent
+from .pattern_agent import PatternRecognitionAgent
 
 class AgentCoordinator:
     """
@@ -38,6 +41,9 @@ class AgentCoordinator:
             'SentimentAnalysis': SentimentAnalysisAgent(),
             'RegimeDetection': RegimeDetectionAgent(),
             'FundamentalAnalysis': FundamentalAnalysisAgent(),
+            'MarketTiming': MarketTimingAgent(),
+            'VolatilityAnalysis': VolatilityAnalysisAgent(),
+            'PatternRecognition': PatternRecognitionAgent(),
         }
         
         # Optional agents
@@ -219,12 +225,15 @@ class AgentCoordinator:
         
         # Enhanced agent weights based on historical accuracy
         agent_weights = {
-            'TechnicalAnalysis': 0.30,  # Technical signals most reliable
-            'FundamentalAnalysis': 0.25,
-            'MLPrediction': 0.20,
-            'SentimentAnalysis': 0.10,
-            'RegimeDetection': 0.10,
-            'LLMExplanation': 0.05  # Lower weight as it's synthetic
+            'TechnicalAnalysis': 0.20,  # Technical signals reliable
+            'MarketTiming': 0.20,      # Timing is crucial for accuracy
+            'PatternRecognition': 0.15, # Patterns help confirm signals
+            'FundamentalAnalysis': 0.15,
+            'MLPrediction': 0.10,
+            'VolatilityAnalysis': 0.10, # Risk assessment
+            'SentimentAnalysis': 0.05,
+            'RegimeDetection': 0.04,
+            'LLMExplanation': 0.01  # Lower weight as it's synthetic
         }
         
         for agent_name, result in valid_results.items():
@@ -432,28 +441,32 @@ class AgentCoordinator:
             # Calculate market trend
             spy_sma20 = spy['Close'].rolling(20).mean()
             spy_sma50 = spy['Close'].rolling(50).mean()
-            spy_current = spy['Close'].iloc[-1]
+            spy_current = float(spy['Close'].iloc[-1])
             
             # Calculate ticker trend
             ticker_sma10 = ticker_data['Close'].rolling(10).mean()
             ticker_sma20 = ticker_data['Close'].rolling(20).mean()
             ticker_sma50 = ticker_data['Close'].rolling(50).mean()
-            ticker_current = ticker_data['Close'].iloc[-1]
+            ticker_current = float(ticker_data['Close'].iloc[-1])
             
             # Momentum calculation
-            ticker_momentum_5d = (ticker_current / ticker_data['Close'].iloc[-6] - 1) if len(ticker_data) > 5 else 0
-            ticker_momentum_20d = (ticker_current / ticker_data['Close'].iloc[-21] - 1) if len(ticker_data) > 20 else 0
+            ticker_momentum_5d = float(ticker_current / ticker_data['Close'].iloc[-6] - 1) if len(ticker_data) > 5 else 0
+            ticker_momentum_20d = float(ticker_current / ticker_data['Close'].iloc[-21] - 1) if len(ticker_data) > 20 else 0
             
             # Enhanced trend determination
-            if (ticker_current > ticker_sma10.iloc[-1] > ticker_sma20.iloc[-1] > ticker_sma50.iloc[-1] and
+            sma10_val = float(ticker_sma10.iloc[-1])
+            sma20_val = float(ticker_sma20.iloc[-1])
+            sma50_val = float(ticker_sma50.iloc[-1])
+            
+            if (ticker_current > sma10_val > sma20_val > sma50_val and
                 ticker_momentum_5d > 0.01 and ticker_momentum_20d > 0.02):
                 trend = 'strong_up'
-            elif (ticker_current < ticker_sma10.iloc[-1] < ticker_sma20.iloc[-1] < ticker_sma50.iloc[-1] and
+            elif (ticker_current < sma10_val < sma20_val < sma50_val and
                   ticker_momentum_5d < -0.01 and ticker_momentum_20d < -0.02):
                 trend = 'strong_down'
-            elif ticker_current > ticker_sma20.iloc[-1] and ticker_momentum_5d > 0:
+            elif ticker_current > sma20_val and ticker_momentum_5d > 0:
                 trend = 'up'
-            elif ticker_current < ticker_sma20.iloc[-1] and ticker_momentum_5d < 0:
+            elif ticker_current < sma20_val and ticker_momentum_5d < 0:
                 trend = 'down'
             else:
                 trend = 'sideways'
@@ -463,8 +476,8 @@ class AgentCoordinator:
             volatility = float(returns.rolling(20).std().iloc[-1])
             
             # Volume analysis
-            volume_avg = ticker_data['Volume'].rolling(20).mean().iloc[-1]
-            volume_recent = ticker_data['Volume'].iloc[-5:].mean()
+            volume_avg = float(ticker_data['Volume'].rolling(20).mean().iloc[-1])
+            volume_recent = float(ticker_data['Volume'].iloc[-5:].mean())
             volume_surge = volume_recent > volume_avg * 1.2
             
             return {

@@ -1,39 +1,27 @@
 {
-  "total_predictions": 2,
-  "correct_predictions": "1",
-  "overall_accuracy": 0.5,
-  "average_confidence": 0.9444614114256087,
+  "total_predictions": 1,
+  "correct_predictions": "0",
+  "overall_accuracy": 0.0,
+  "average_confidence": 0.8831084268470262,
   "trades_analyzed": 90,
-  "selectivity": 0.022222222222222223,
+  "selectivity": 0.011111111111111112,
   "by_recommendation": {
     "BUY": {
-      "count": 2,
-      "accuracy": 0.5
+      "count": 1,
+      "accuracy": 0.0
     }
   },
   "all_predictions": [
     {
       "date": "2023-08-15",
-      "symbol": "GOOGL",
+      "symbol": "AMZN",
       "recommendation": "BUY",
-      "confidence": 0.95,
-      "composite_score": 0.4082188233766203,
+      "confidence": 0.8831084268470262,
+      "composite_score": 0.4010247730179391,
       "trend": "up",
-      "current_price": 129.0063018798828,
-      "future_price": 133.76776123046875,
-      "actual_return": 0.03690873454398616,
-      "correct": true
-    },
-    {
-      "date": "2023-08-15",
-      "symbol": "JNJ",
-      "recommendation": "BUY",
-      "confidence": 0.9389228228512174,
-      "composite_score": 0.38747263299201756,
-      "trend": "up",
-      "current_price": 162.3990936279297,
-      "future_price": 155.41534423828125,
-      "actual_return": -0.04300362294908375,
+      "current_price": 137.6699981689453,
+      "future_price": 134.91000366210938,
+      "actual_return": -0.020047901093518856,
       "correct": false
     }
   ]

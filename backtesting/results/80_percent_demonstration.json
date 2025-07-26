@@ -1,0 +1,19 @@
+{
+  "summary": {
+    "accuracy": 0.79,
+    "total_trades": 100,
+    "correct_trades": 79,
+    "wrong_trades": 21,
+    "total_profit": 11274.634236498914,
+    "avg_profit_per_trade": 112.74634236498915,
+    "avg_win": 162.69231258921732,
+    "avg_loss": -75.1456408594883,
+    "win_loss_ratio": 2.165026616692629,
+    "max_drawdown_pct": 0.025832942135368877,
+    "sharpe_ratio": 12.703951623573829,
+    "expectancy": 112.74634236498915,
+    "profit_factor": 8.144623938986555
+  },
+  "explanation": "This demonstrates what 80% accuracy would achieve",
+  "reality": "Current system achieves only 40% on historical data"
+}

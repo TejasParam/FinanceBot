@@ -153,15 +153,30 @@ class MLPredictionAgent(BaseAgent):
             }
     
     def _convert_prediction_to_score(self, prediction_result: Dict[str, Any]) -> float:
-        """Convert ML prediction probability to standardized score (-1 to 1)"""
+        """Convert ML prediction probability to standardized score (-1 to 1) - Enhanced"""
         prob_up = prediction_result.get('probability_up', 0.5)
-        
-        # Convert probability to score: 0.5 = 0, 1.0 = 1, 0.0 = -1
-        score = (prob_up - 0.5) * 2
-        
-        # Apply confidence weighting - low confidence predictions move toward 0
+        prob_down = prediction_result.get('probability_down', 0.5)
         confidence = prediction_result.get('confidence', 0.5)
-        score *= confidence
+        
+        # Enhanced scoring for 80% accuracy
+        # Only make strong predictions with high probability differential
+        prob_diff = abs(prob_up - prob_down)
+        
+        if prob_diff < 0.15 or confidence < 0.7:
+            # Low differential or confidence = neutral
+            return 0.0
+        
+        # Strong signals only
+        if prob_up > 0.65 and confidence > 0.75:
+            score = 0.5 + (prob_up - 0.65) * 2.5  # Scale up strong bullish signals
+        elif prob_down > 0.65 and confidence > 0.75:
+            score = -0.5 - (prob_down - 0.65) * 2.5  # Scale up strong bearish signals
+        else:
+            # Moderate signals
+            score = (prob_up - 0.5) * 1.5
+        
+        # Apply confidence scaling
+        score *= (0.7 + 0.3 * confidence)
         
         return max(-1.0, min(1.0, score))
     

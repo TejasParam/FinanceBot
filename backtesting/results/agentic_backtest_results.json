@@ -1,0 +1,52 @@
+{
+  "test_dates": [
+    "2023-06-15",
+    "2023-09-15",
+    "2023-11-15"
+  ],
+  "symbols": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "NVDA",
+    "META"
+  ],
+  "overall_accuracy": 0,
+  "high_confidence_accuracy": 0,
+  "very_high_confidence_accuracy": 0,
+  "total_predictions": 0,
+  "total_high_confidence": 0,
+  "total_very_high_confidence": 0,
+  "detailed_results": [
+    {
+      "test_date": "2023-06-15",
+      "total_predictions": 0,
+      "overall_accuracy": 0,
+      "high_confidence_accuracy": 0,
+      "high_confidence_count": 0,
+      "very_high_confidence_accuracy": 0,
+      "very_high_confidence_count": 0,
+      "predictions": []
+    },
+    {
+      "test_date": "2023-09-15",
+      "total_predictions": 0,
+      "overall_accuracy": 0,
+      "high_confidence_accuracy": 0,
+      "high_confidence_count": 0,
+      "very_high_confidence_accuracy": 0,
+      "very_high_confidence_count": 0,
+      "predictions": []
+    },
+    {
+      "test_date": "2023-11-15",
+      "total_predictions": 0,
+      "overall_accuracy": 0,
+      "high_confidence_accuracy": 0,
+      "high_confidence_count": 0,
+      "very_high_confidence_accuracy": 0,
+      "very_high_confidence_count": 0,
+      "predictions": []
+    }
+  ]
+}

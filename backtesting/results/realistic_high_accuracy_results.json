@@ -1,0 +1,194 @@
+{
+  "total_predictions": 12,
+  "correct_predictions": "5",
+  "overall_accuracy": 0.4166666666666667,
+  "by_trend": {
+    "strong_up": {
+      "count": 5,
+      "accuracy": 0.2
+    },
+    "sideways": {
+      "count": 5,
+      "accuracy": 0.4
+    },
+    "up": {
+      "count": 2,
+      "accuracy": 1.0
+    }
+  },
+  "by_recommendation": {
+    "BUY": {
+      "count": 9,
+      "accuracy": 0.4444444444444444
+    },
+    "HOLD": {
+      "count": 3,
+      "accuracy": 0.3333333333333333
+    }
+  },
+  "by_market_condition": {
+    "insufficient_data": {
+      "count": 12,
+      "accuracy": 0.4166666666666667
+    }
+  },
+  "average_confidence": 0.8470060707803023,
+  "all_predictions": [
+    {
+      "date": "2023-03-15",
+      "symbol": "GOOGL",
+      "recommendation": "BUY",
+      "confidence": 0.8752430492125953,
+      "momentum_score": 0.8500000000000001,
+      "trend": "strong_up",
+      "market_trend": "insufficient_data",
+      "current_price": 95.53703308105469,
+      "future_price": 100.78555297851562,
+      "actual_return": 0.054937020003625554,
+      "correct": true
+    },
+    {
+      "date": "2023-03-15",
+      "symbol": "TSLA",
+      "recommendation": "HOLD",
+      "confidence": 0.8128124461564649,
+      "momentum_score": 0.35,
+      "trend": "sideways",
+      "market_trend": "insufficient_data",
+      "current_price": 180.4499969482422,
+      "future_price": 193.8800048828125,
+      "actual_return": 0.07442509371957702,
+      "correct": false
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "GOOGL",
+      "recommendation": "BUY",
+      "confidence": 0.8554272331362942,
+      "momentum_score": 0.55,
+      "trend": "up",
+      "market_trend": "insufficient_data",
+      "current_price": 129.00631713867188,
+      "future_price": 133.7677459716797,
+      "actual_return": 0.03690849361965463,
+      "correct": true
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "NVDA",
+      "recommendation": "BUY",
+      "confidence": 0.8738720481776248,
+      "momentum_score": 0.35,
+      "trend": "sideways",
+      "market_trend": "insufficient_data",
+      "current_price": 43.91297149658203,
+      "future_price": 48.75399398803711,
+      "actual_return": 0.11024128694711265,
+      "correct": true
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "META",
+      "recommendation": "HOLD",
+      "confidence": 0.814584866140321,
+      "momentum_score": 0.35,
+      "trend": "sideways",
+      "market_trend": "insufficient_data",
+      "current_price": 300.3025207519531,
+      "future_price": 296.3641357421875,
+      "actual_return": -0.013114725110878078,
+      "correct": true
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "AMZN",
+      "recommendation": "BUY",
+      "confidence": 0.8664123782937665,
+      "momentum_score": 0.7000000000000001,
+      "trend": "strong_up",
+      "market_trend": "insufficient_data",
+      "current_price": 137.6699981689453,
+      "future_price": 134.91000366210938,
+      "actual_return": -0.020047901093518856,
+      "correct": false
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "JPM",
+      "recommendation": "BUY",
+      "confidence": 0.8714277102849192,
+      "momentum_score": 0.35,
+      "trend": "sideways",
+      "market_trend": "insufficient_data",
+      "current_price": 143.89804077148438,
+      "future_price": 141.92315673828125,
+      "actual_return": -0.01372418986815336,
+      "correct": false
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "V",
+      "recommendation": "BUY",
+      "confidence": 0.8336655278723045,
+      "momentum_score": 0.4,
+      "trend": "up",
+      "market_trend": "insufficient_data",
+      "current_price": 236.7130126953125,
+      "future_price": 242.1513671875,
+      "actual_return": 0.022974463593125452,
+      "correct": true
+    },
+    {
+      "date": "2023-08-15",
+      "symbol": "JNJ",
+      "recommendation": "BUY",
+      "confidence": 0.8369524205320283,
+      "momentum_score": 0.8500000000000001,
+      "trend": "strong_up",
+      "market_trend": "insufficient_data",
+      "current_price": 162.39910888671875,
+      "future_price": 155.41537475585938,
+      "actual_return": -0.04300352494994827,
+      "correct": false
+    },
+    {
+      "date": "2023-09-15",
+      "symbol": "MSFT",
+      "recommendation": "HOLD",
+      "confidence": 0.8002188193326197,
+      "momentum_score": 0.35,
+      "trend": "sideways",
+      "market_trend": "insufficient_data",
+      "current_price": 325.852294921875,
+      "future_price": 311.5736389160156,
+      "actual_return": -0.043819412133594964,
+      "correct": false
+    },
+    {
+      "date": "2023-09-15",
+      "symbol": "GOOGL",
+      "recommendation": "BUY",
+      "confidence": 0.8528442289735403,
+      "momentum_score": 0.7000000000000001,
+      "trend": "strong_up",
+      "market_trend": "insufficient_data",
+      "current_price": 136.58087158203125,
+      "future_price": 130.07986450195312,
+      "actual_return": -0.047598225174405796,
+      "correct": false
+    },
+    {
+      "date": "2023-09-15",
+      "symbol": "AMZN",
+      "recommendation": "BUY",
+      "confidence": 0.8706121212511498,
+      "momentum_score": 0.8500000000000001,
+      "trend": "strong_up",
+      "market_trend": "insufficient_data",
+      "current_price": 140.38999938964844,
+      "future_price": 127.12000274658203,
+      "actual_return": -0.0945223783799294,
+      "correct": false
+    }
+  ]
+}

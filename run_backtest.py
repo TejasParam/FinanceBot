@@ -17,15 +17,15 @@ import warnings
 from typing import List, Dict
 warnings.filterwarnings('ignore')
 
-from agentic_portfolio_manager import AgenticPortfolioManager
+from agents.coordinator import AgentCoordinator
 
 class EnhancedBacktest:
     """Enhanced backtest system with improved accuracy"""
     
     def __init__(self):
-        self.manager = AgenticPortfolioManager(
-            use_ml=True,
-            use_llm=True,
+        self.manager = AgentCoordinator(
+            enable_ml=True,
+            enable_llm=False,  # Disable LLM for testing
             parallel_execution=False  # Sequential for consistency
         )
         
@@ -66,9 +66,11 @@ class EnhancedBacktest:
                     # Run enhanced analysis
                     analysis = self.manager.analyze_stock(symbol)
                     
-                    recommendation = analysis.get('recommendation', 'HOLD')
-                    confidence = analysis.get('confidence', 0.0)
-                    composite_score = analysis.get('composite_score', 0.0)
+                    # Extract from aggregated analysis
+                    aggregated = analysis.get('aggregated_analysis', {})
+                    recommendation = aggregated.get('recommendation', 'HOLD')
+                    confidence = aggregated.get('overall_confidence', 0.0)
+                    composite_score = aggregated.get('overall_score', 0.0)
                     
                     # Apply enhanced filtering
                     # Only take trades with confidence >= 75%

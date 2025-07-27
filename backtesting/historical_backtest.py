@@ -158,7 +158,13 @@ class HistoricalBacktest:
                         confidence = aggregated.get('overall_confidence', 0)
                         recommendation = aggregated.get('recommendation', 'HOLD')
                         
-                        if confidence >= confidence_threshold:
+                        # Use dynamic confidence threshold from market filter
+                        dynamic_threshold = analysis.get('confidence_threshold', confidence_threshold)
+                        
+                        # Check if we should trade based on market filter
+                        should_trade = analysis.get('should_trade', True)
+                        
+                        if confidence >= dynamic_threshold and should_trade:
                             signals.append({
                                 'symbol': symbol,
                                 'recommendation': recommendation,

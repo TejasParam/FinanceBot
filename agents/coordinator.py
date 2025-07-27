@@ -6,13 +6,15 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import logging
 import time
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .base_agent import BaseAgent
+from .performance_tracker import PerformanceTracker
+from .market_filter import MarketFilter
 from .technical_agent import TechnicalAnalysisAgent
 from .sentiment_agent import SentimentAnalysisAgent
 from .ml_agent import MLPredictionAgent
@@ -63,6 +65,12 @@ class AgentCoordinator:
             'agent_performance': {name: {'success': 0, 'failure': 0} 
                                 for name in self.agents.keys()}
         }
+        
+        # Initialize performance tracker and market filter for improved accuracy
+        self.performance_tracker = PerformanceTracker()
+        self.market_filter = MarketFilter()
+        self.enable_ml = enable_ml
+        self.enable_llm = enable_llm
         
     def analyze_stock(self, ticker: str, **kwargs) -> Dict[str, Any]:
         """
@@ -119,6 +127,29 @@ class AgentCoordinator:
             # Generate trading signals
             trading_signals = self._generate_trading_signals(aggregated, risk_metrics)
             
+            # Apply market filter for improved accuracy
+            should_trade, filter_reason = self.market_filter.should_trade(
+                market_context, 
+                {'agent_results': agent_results, 'aggregated_analysis': aggregated}
+            )
+            
+            # Get dynamic confidence threshold
+            confidence_threshold = self.market_filter.get_dynamic_confidence_threshold(market_context)
+            
+            # Adjust recommendation based on market filter
+            if not should_trade:
+                aggregated['recommendation'] = 'HOLD'
+                aggregated['filter_applied'] = True
+                aggregated['filter_reason'] = filter_reason
+            
+            # Apply execution quality optimization (institutional feature)
+            execution_quality = self._optimize_execution_quality(
+                aggregated['recommendation'],
+                agent_results.get('VolatilityAnalysis', {}),
+                market_context,
+                trading_signals.get('position_size', 0.02)
+            )
+            
             return {
                 'ticker': ticker,
                 'timestamp': time.time(),
@@ -129,10 +160,14 @@ class AgentCoordinator:
                 'risk_adjusted_score': risk_adjusted_score,
                 'trading_signals': trading_signals,
                 'market_context': market_context,
+                'should_trade': should_trade,
+                'filter_reason': filter_reason,
+                'confidence_threshold': confidence_threshold,
                 'agents_executed': len(agent_results),
                 'agents_successful': len([r for r in agent_results.values() 
                                         if isinstance(r, dict) and 'error' not in r]),
-                'system_confidence': self._calculate_system_confidence(agent_results, aggregated)
+                'system_confidence': self._calculate_system_confidence(agent_results, aggregated),
+                'execution_quality': execution_quality
             }
             
         except Exception as e:
@@ -255,25 +290,25 @@ class AgentCoordinator:
             confidence = result.get('confidence', 0.5)
             weight = agent_weights.get(agent_name, 0.1)
             
-            # Heavy momentum-based adjustments for 80% accuracy
+            # Moderate momentum-based adjustments for better accuracy
             if market_context['trend'] in ['strong_up', 'up']:
                 if score > 0:
-                    # Boost bullish signals in uptrends
-                    score *= (1.5 + market_context.get('momentum_5d', 0) * 5)
-                    confidence = min(0.95, confidence + 0.15)
+                    # Slight boost to bullish signals in uptrends
+                    score *= 1.2  # 20% boost instead of up to 550%
+                    confidence = min(0.85, confidence + 0.05)  # Max 85% instead of 95%
                 elif score < -0.3:
-                    # Strongly reduce bearish signals in uptrends
-                    score *= 0.3
-                    confidence *= 0.6
+                    # Moderate reduction of bearish signals in uptrends
+                    score *= 0.7  # 30% reduction instead of 70%
+                    confidence *= 0.9
             elif market_context['trend'] in ['strong_down', 'down']:
                 if score < 0:
-                    # Boost bearish signals in downtrends
-                    score *= (1.5 - market_context.get('momentum_5d', 0) * 5)
-                    confidence = min(0.95, confidence + 0.15)
+                    # Slight boost to bearish signals in downtrends
+                    score *= 1.2
+                    confidence = min(0.85, confidence + 0.05)
                 elif score > 0.3:
-                    # Strongly reduce bullish signals in downtrends
-                    score *= 0.3
-                    confidence *= 0.6
+                    # Moderate reduction of bullish signals in downtrends
+                    score *= 0.7
+                    confidence *= 0.9
             
             # Volume surge bonus
             if market_context.get('volume_surge', False):
@@ -297,9 +332,9 @@ class AgentCoordinator:
         base_confidence = total_confidence / sum(agent_weights.get(name, 0.1) 
                                                for name in valid_results.keys())
         
-        # Boost confidence for strong consensus
+        # Boost confidence for strong consensus (but more moderately)
         consensus_boost = self._calculate_consensus_boost(valid_results)
-        overall_confidence = min(0.95, base_confidence + consensus_boost)
+        overall_confidence = min(0.80, base_confidence + consensus_boost)  # Cap at 80% instead of 95%
         
         # Determine recommendation with market context
         recommendation = self._score_to_recommendation(overall_score, overall_confidence, market_context)
@@ -326,24 +361,22 @@ class AgentCoordinator:
         }
     
     def _score_to_recommendation(self, score: float, confidence: float, market_context: Dict = None) -> str:
-        """Convert aggregated score to recommendation - Optimized for 80% accuracy"""
-        # Use momentum-based thresholds
-        if market_context and market_context.get('trend') in ['strong_up', 'up']:
-            # In uptrends, favor BUY signals
-            if confidence >= 0.8 and score > 0.2:
-                return 'STRONG_BUY' if score > 0.4 else 'BUY'
-            elif confidence >= 0.75 and score > 0.1:
-                return 'BUY'
-        elif market_context and market_context.get('trend') in ['strong_down', 'down']:
-            # In downtrends, favor SELL signals
-            if confidence >= 0.8 and score < -0.2:
-                return 'STRONG_SELL' if score < -0.4 else 'SELL'
-            elif confidence >= 0.75 and score < -0.1:
-                return 'SELL'
-        
-        # For sideways or uncertain markets
-        if confidence < 0.75:
+        """Convert aggregated score to recommendation - Balanced for accuracy"""
+        # More balanced thresholds
+        if confidence < 0.70:  # Low confidence = HOLD
             return 'HOLD'
+        
+        # Strong signals only with high score AND high confidence
+        if score > 0.6 and confidence >= 0.75:
+            return 'STRONG_BUY'
+        elif score > 0.3 and confidence >= 0.70:
+            return 'BUY'
+        elif score < -0.6 and confidence >= 0.75:
+            return 'STRONG_SELL'
+        elif score < -0.3 and confidence >= 0.70:
+            return 'SELL'
+        else:
+            return 'HOLD'  # Default to HOLD for mixed signals
         
         # Standard thresholds
         if score > 0.5 and confidence > 0.85:
@@ -564,19 +597,26 @@ class AgentCoordinator:
     def _get_adaptive_weights(self, market_context: Dict[str, Any], valid_results: Dict[str, Any]) -> Dict[str, float]:
         """Get adaptive weights based on market conditions and agent performance - World-class implementation"""
         
-        # Base weights with performance-based initialization - World-class distribution
-        base_weights = {
-            'TechnicalAnalysis': 0.18,
-            'MarketTiming': 0.18,
-            'PatternRecognition': 0.12,
-            'IntermarketAnalysis': 0.12,
-            'FundamentalAnalysis': 0.12,
-            'MLPrediction': 0.10,
-            'VolatilityAnalysis': 0.08,
-            'SentimentAnalysis': 0.05,
-            'RegimeDetection': 0.04,
-            'LLMExplanation': 0.01
-        }
+        # Get dynamic weights from performance tracker
+        dynamic_weights = self.performance_tracker.get_dynamic_weights(market_context)
+        
+        # If we have good performance data, use it
+        if dynamic_weights and sum(dynamic_weights.values()) > 0:
+            base_weights = dynamic_weights
+        else:
+            # Fallback to static weights if no performance data
+            base_weights = {
+                'TechnicalAnalysis': 0.18,
+                'MarketTiming': 0.18,
+                'PatternRecognition': 0.12,
+                'IntermarketAnalysis': 0.12,
+                'FundamentalAnalysis': 0.12,
+                'MLPrediction': 0.10,
+                'VolatilityAnalysis': 0.08,
+                'SentimentAnalysis': 0.05,
+                'RegimeDetection': 0.04,
+                'LLMExplanation': 0.01
+            }
         
         # Market condition adjustments
         trend = market_context.get('trend', 'unknown')
@@ -848,22 +888,61 @@ class AgentCoordinator:
         return round(system_confidence, 3)
     
     def _calculate_kelly_position(self, win_probability: float, expected_win: float, expected_loss: float) -> float:
-        """Calculate optimal position size using Kelly Criterion"""
+        """Calculate optimal position size using institutional Kelly Criterion"""
         if win_probability <= 0 or win_probability >= 1 or expected_loss <= 0:
             return 0.0
             
-        # Kelly formula: f = (p*b - q)/b
-        # where p = win probability, q = loss probability, b = win/loss ratio
+        # Enhanced Kelly with multiple adjustments (Two Sigma approach)
         q = 1 - win_probability
         b = expected_win / expected_loss
         
+        # 1. Base Kelly calculation
         kelly = (win_probability * b - q) / b
         
-        # Apply Kelly fraction (25% of full Kelly for safety)
-        kelly_fraction = 0.25
-        position_size = max(0, min(1, kelly * kelly_fraction))
+        # 2. Confidence adjustment - reduce Kelly when uncertain
+        confidence_factor = win_probability if win_probability > 0.5 else 0.5
+        adjusted_kelly = kelly * confidence_factor
         
-        return position_size
+        # 3. Regime-based Kelly fraction (Renaissance approach)
+        # Use different fractions for different market conditions
+        market_volatility = self.current_risk_metrics.get('volatility', 0.015) if hasattr(self, 'current_risk_metrics') else 0.015
+        
+        if market_volatility < 0.01:  # Low volatility
+            kelly_fraction = 0.35  # Can be more aggressive
+        elif market_volatility < 0.02:  # Normal volatility
+            kelly_fraction = 0.25  # Standard quarter Kelly
+        elif market_volatility < 0.03:  # High volatility
+            kelly_fraction = 0.15  # More conservative
+        else:  # Extreme volatility
+            kelly_fraction = 0.10  # Very conservative
+        
+        # 4. Drawdown protection (Citadel approach)
+        # Reduce position size if in drawdown
+        if hasattr(self, 'portfolio_metrics'):
+            current_drawdown = self.portfolio_metrics.get('current_drawdown', 0)
+            if current_drawdown > 0.10:  # 10% drawdown
+                kelly_fraction *= 0.5
+            elif current_drawdown > 0.05:  # 5% drawdown
+                kelly_fraction *= 0.75
+        
+        # 5. Correlation adjustment
+        # Reduce size for correlated positions
+        correlation_factor = 1.0
+        if hasattr(self, 'portfolio_correlations'):
+            avg_correlation = np.mean(list(self.portfolio_correlations.values()))
+            if avg_correlation > 0.7:
+                correlation_factor = 0.7
+            elif avg_correlation > 0.5:
+                correlation_factor = 0.85
+        
+        # 6. Final position size with all adjustments
+        position_size = adjusted_kelly * kelly_fraction * correlation_factor
+        
+        # 7. Apply min/max constraints
+        min_position = 0.005  # 0.5% minimum
+        max_position = 0.10   # 10% maximum (institutional standard)
+        
+        return max(min_position, min(max_position, position_size))
     
     def _identify_volatility_regime(self, annualized_volatility: float) -> str:
         """Identify current volatility regime"""
@@ -881,3 +960,165 @@ class AgentCoordinator:
         # Portfolio heat = position size * stop loss
         # This represents the total portfolio risk from this position
         return position_size * stop_loss_pct
+    
+    def _optimize_execution_quality(self, recommendation: str, volatility_analysis: Dict[str, Any], 
+                                   market_context: Dict[str, Any], position_size: float) -> Dict[str, Any]:
+        """Optimize execution quality using institutional techniques"""
+        
+        execution_plan = {
+            'strategy': 'standard',
+            'urgency': 'normal',
+            'execution_style': 'limit',
+            'time_constraints': None,
+            'slicing_strategy': None,
+            'optimal_timing': None
+        }
+        
+        # Skip if not trading
+        if recommendation == 'HOLD':
+            return execution_plan
+        
+        # Extract market microstructure signals
+        microstructure = volatility_analysis.get('volatility_signals', {})
+        spread_widening = microstructure.get('spread_widening', False)
+        market_depth = microstructure.get('market_depth', 'normal')
+        institutional_activity = microstructure.get('institutional_activity', 'normal')
+        order_imbalance = microstructure.get('order_imbalance_signal', 'balanced')
+        
+        # 1. Determine execution urgency
+        if 'STRONG' in recommendation:
+            execution_plan['urgency'] = 'high'
+        elif abs(market_context.get('momentum_5d', 0)) > 0.05:
+            execution_plan['urgency'] = 'medium-high'
+        else:
+            execution_plan['urgency'] = 'normal'
+        
+        # 2. Select execution strategy based on market conditions
+        if position_size > 0.05:  # Large position
+            if market_depth == 'shallow':
+                execution_plan['strategy'] = 'iceberg'
+                execution_plan['slicing_strategy'] = {
+                    'slices': 10,
+                    'randomize': True,
+                    'min_interval_seconds': 300,
+                    'max_interval_seconds': 900
+                }
+            else:
+                execution_plan['strategy'] = 'twap'  # Time-weighted average price
+                execution_plan['slicing_strategy'] = {
+                    'duration_minutes': 60,
+                    'slices': 20
+                }
+        
+        # 3. Determine order type
+        if spread_widening or market_depth == 'shallow':
+            execution_plan['execution_style'] = 'limit_patient'
+            execution_plan['limit_strategy'] = {
+                'initial_offset_bps': -5 if 'BUY' in recommendation else 5,
+                'improvement_steps': 3,
+                'max_wait_seconds': 120
+            }
+        elif execution_plan['urgency'] == 'high':
+            execution_plan['execution_style'] = 'market'
+        else:
+            execution_plan['execution_style'] = 'limit'
+            execution_plan['limit_strategy'] = {
+                'initial_offset_bps': -2 if 'BUY' in recommendation else 2,
+                'improvement_steps': 2,
+                'max_wait_seconds': 60
+            }
+        
+        # 4. Optimal timing based on patterns
+        if institutional_activity == 'likely':
+            # Avoid competing with institutions
+            execution_plan['optimal_timing'] = 'avoid_open_close'
+            execution_plan['time_constraints'] = {
+                'avoid_first_minutes': 30,
+                'avoid_last_minutes': 30,
+                'preferred_hours': [10, 11, 13, 14]  # 10-11am, 1-2pm
+            }
+        else:
+            execution_plan['optimal_timing'] = 'standard'
+        
+        # 5. Order flow considerations
+        if 'strong_buy' in order_imbalance and 'BUY' in recommendation:
+            execution_plan['flow_strategy'] = 'ride_momentum'
+        elif 'strong_sell' in order_imbalance and 'SELL' in recommendation:
+            execution_plan['flow_strategy'] = 'ride_momentum'
+        else:
+            execution_plan['flow_strategy'] = 'contrarian'
+        
+        # 6. Smart order routing recommendations
+        execution_plan['routing'] = {
+            'dark_pool_eligible': position_size > 0.03,
+            'use_midpoint': market_depth != 'shallow',
+            'avoid_lit_markets': spread_widening,
+            'preferred_venues': ['IEX', 'NASDAQ'] if 'BUY' in recommendation else ['NYSE', 'BATS']
+        }
+        
+        # 7. Pre-trade analytics
+        expected_slippage = self._estimate_slippage(position_size, market_depth, microstructure)
+        expected_impact = self._estimate_market_impact(position_size, market_depth)
+        
+        execution_plan['analytics'] = {
+            'expected_slippage_bps': expected_slippage,
+            'expected_market_impact_bps': expected_impact,
+            'total_expected_cost_bps': expected_slippage + expected_impact,
+            'break_even_move_required': (expected_slippage + expected_impact) / 10000  # Convert to percentage
+        }
+        
+        # 8. Risk controls
+        execution_plan['risk_controls'] = {
+            'max_participation_rate': 0.10 if market_depth == 'deep' else 0.05,
+            'price_limit_pct': 0.002,  # 0.2% from arrival price
+            'time_limit_minutes': 120,
+            'cancel_if_adverse_move_pct': 0.005
+        }
+        
+        return execution_plan
+    
+    def _estimate_slippage(self, position_size: float, market_depth: str, 
+                          microstructure: Dict[str, Any]) -> float:
+        """Estimate expected slippage in basis points"""
+        
+        # Base slippage by market depth
+        base_slippage = {
+            'deep': 2,
+            'normal': 5,
+            'shallow': 10
+        }.get(market_depth, 5)
+        
+        # Adjust for position size
+        size_multiplier = 1 + (position_size - 0.01) * 10  # 10x for each 1% of position
+        
+        # Adjust for spread
+        spread_proxy = microstructure.get('spread_proxy', 0.001)
+        spread_adjustment = spread_proxy * 10000 / 2  # Half spread in bps
+        
+        # Adjust for volatility
+        if microstructure.get('noisy_market', False):
+            volatility_adjustment = 5
+        else:
+            volatility_adjustment = 0
+        
+        total_slippage = (base_slippage * size_multiplier + 
+                         spread_adjustment + 
+                         volatility_adjustment)
+        
+        return round(total_slippage, 1)
+    
+    def _estimate_market_impact(self, position_size: float, market_depth: str) -> float:
+        """Estimate market impact using simplified square-root model"""
+        
+        # Impact coefficients by market depth (institutional calibration)
+        impact_coefficient = {
+            'deep': 10,
+            'normal': 20,
+            'shallow': 40
+        }.get(market_depth, 20)
+        
+        # Square-root market impact model
+        # Impact (bps) = coefficient * sqrt(position_size)
+        impact = impact_coefficient * np.sqrt(position_size)
+        
+        return round(impact, 1)

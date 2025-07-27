@@ -13,6 +13,8 @@ from .base_agent import BaseAgent
 from data_collection import DataCollectionAgent
 import yfinance as yf
 from scipy.stats import pearsonr, spearmanr
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 class IntermarketAnalysisAgent(BaseAgent):
     """
@@ -94,10 +96,14 @@ class IntermarketAnalysisAgent(BaseAgent):
             }
     
     def _calculate_correlations(self, ticker: str, stock_data: pd.DataFrame, period: str) -> Dict[str, Any]:
-        """Calculate correlations with major market indicators"""
+        """Calculate institutional-grade correlations with major market indicators"""
         
         correlations = {}
         stock_returns = stock_data['Close'].pct_change().dropna()
+        
+        # Store all market data for cross-correlation matrix
+        all_returns = {'stock': stock_returns}
+        beta_calculations = {}
         
         # Calculate correlations with each market category
         for category, symbols in self.market_indicators.items():
@@ -119,20 +125,45 @@ class IntermarketAnalysisAgent(BaseAgent):
                             aligned_stock = stock_returns.loc[common_dates]
                             aligned_market = market_returns.loc[common_dates]
                             
+                            # Store for cross-correlation
+                            all_returns[symbol] = aligned_market
+                            
                             # Calculate both Pearson and Spearman correlations
                             pearson_corr, _ = pearsonr(aligned_stock, aligned_market)
                             spearman_corr, _ = spearmanr(aligned_stock, aligned_market)
                             
-                            # Rolling correlation for trend
-                            rolling_corr = aligned_stock.rolling(20).corr(aligned_market)
-                            corr_trend = float(rolling_corr.iloc[-1] - rolling_corr.iloc[-10]) if len(rolling_corr) > 10 else 0
+                            # Rolling correlations (institutional grade)
+                            rolling_corr_20 = aligned_stock.rolling(20).corr(aligned_market)
+                            rolling_corr_60 = aligned_stock.rolling(60).corr(aligned_market) if len(aligned_stock) >= 60 else rolling_corr_20
+                            
+                            # Correlation stability (institutional metric)
+                            corr_stability = rolling_corr_20.std() if len(rolling_corr_20) > 20 else 1.0
+                            
+                            # Dynamic correlation trend
+                            corr_trend = float(rolling_corr_20.iloc[-1] - rolling_corr_20.iloc[-10]) if len(rolling_corr_20) > 10 else 0
+                            
+                            # Beta calculation for SPY
+                            if symbol == 'SPY':
+                                covariance = np.cov(aligned_stock, aligned_market)[0, 1]
+                                market_variance = np.var(aligned_market)
+                                beta = covariance / market_variance if market_variance > 0 else 1.0
+                                beta_calculations['market_beta'] = float(beta)
+                                
+                                # Rolling beta
+                                rolling_beta = aligned_stock.rolling(60).cov(aligned_market) / aligned_market.rolling(60).var()
+                                if len(rolling_beta) > 0:
+                                    beta_calculations['rolling_beta'] = float(rolling_beta.iloc[-1])
+                                    beta_calculations['beta_stability'] = float(rolling_beta.std())
                             
                             category_corrs.append({
                                 'symbol': symbol,
                                 'pearson': float(pearson_corr),
                                 'spearman': float(spearman_corr),
-                                'current': float(rolling_corr.iloc[-1]) if len(rolling_corr) > 0 else pearson_corr,
-                                'trend': corr_trend
+                                'current_20d': float(rolling_corr_20.iloc[-1]) if len(rolling_corr_20) > 0 else pearson_corr,
+                                'current_60d': float(rolling_corr_60.iloc[-1]) if len(rolling_corr_60) > 0 else pearson_corr,
+                                'trend': corr_trend,
+                                'stability': float(corr_stability),
+                                'regime_dependent': abs(pearson_corr - spearman_corr) > 0.2  # Non-linear relationship
                             })
                 except:
                     continue
@@ -143,8 +174,18 @@ class IntermarketAnalysisAgent(BaseAgent):
                 correlations[category] = {
                     'average': float(avg_corr),
                     'details': category_corrs,
-                    'strongest': max(category_corrs, key=lambda x: abs(x['pearson']))
+                    'strongest': max(category_corrs, key=lambda x: abs(x['pearson'])),
+                    'most_stable': min(category_corrs, key=lambda x: x['stability'])
                 }
+        
+        # Calculate cross-asset correlation matrix (institutional feature)
+        correlations['cross_correlations'] = self._calculate_cross_correlations(all_returns)
+        
+        # PCA for risk factors (institutional feature)
+        correlations['risk_factors'] = self._calculate_risk_factors(all_returns)
+        
+        # Beta calculations
+        correlations['beta'] = beta_calculations
         
         return correlations
     
@@ -464,3 +505,157 @@ class IntermarketAnalysisAgent(BaseAgent):
             signals['regime_signals'].append('defensive_positioning_recommended')
         
         return signals
+    
+    def _calculate_cross_correlations(self, all_returns: Dict[str, pd.Series]) -> Dict[str, Any]:
+        """Calculate institutional-grade cross-asset correlation matrix"""
+        try:
+            # Create returns dataframe
+            returns_df = pd.DataFrame(all_returns)
+            
+            # Ensure we have enough data
+            if len(returns_df) < 30 or len(returns_df.columns) < 5:
+                return {}
+            
+            # Drop any NaN values
+            returns_df = returns_df.dropna()
+            
+            # Calculate correlation matrix
+            corr_matrix = returns_df.corr()
+            
+            # Calculate rolling correlation matrices for regime detection
+            rolling_corr_30 = returns_df.rolling(30).corr()
+            rolling_corr_60 = returns_df.rolling(60).corr() if len(returns_df) >= 60 else rolling_corr_30
+            
+            # Correlation regime changes
+            recent_corr = returns_df.iloc[-30:].corr() if len(returns_df) >= 30 else corr_matrix
+            corr_changes = recent_corr - corr_matrix
+            
+            # Find largest correlation changes (regime shifts)
+            regime_shifts = []
+            for i in range(len(corr_changes)):
+                for j in range(i+1, len(corr_changes)):
+                    change = abs(corr_changes.iloc[i, j])
+                    if change > 0.3:  # Significant correlation change
+                        regime_shifts.append({
+                            'pair': f"{corr_changes.index[i]}-{corr_changes.columns[j]}",
+                            'change': float(change),
+                            'current': float(recent_corr.iloc[i, j]),
+                            'historical': float(corr_matrix.iloc[i, j])
+                        })
+            
+            # Average correlations by asset class
+            asset_correlations = {}
+            if 'stock' in returns_df.columns:
+                stock_corrs = corr_matrix['stock'].drop('stock')
+                asset_correlations['avg_correlation'] = float(stock_corrs.mean())
+                asset_correlations['max_correlation'] = float(stock_corrs.max())
+                asset_correlations['min_correlation'] = float(stock_corrs.min())
+            
+            return {
+                'correlation_matrix': corr_matrix.to_dict(),
+                'regime_shifts': sorted(regime_shifts, key=lambda x: x['change'], reverse=True)[:5],
+                'asset_correlations': asset_correlations,
+                'correlation_stability': float(rolling_corr_30.std().mean()) if len(rolling_corr_30) > 30 else 1.0
+            }
+            
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def _calculate_risk_factors(self, all_returns: Dict[str, pd.Series]) -> Dict[str, Any]:
+        """Calculate PCA risk factors - institutional feature"""
+        try:
+            # Create returns dataframe
+            returns_df = pd.DataFrame(all_returns)
+            
+            # Need at least 5 assets and 60 observations for meaningful PCA
+            if len(returns_df) < 60 or len(returns_df.columns) < 5:
+                return {}
+            
+            # Drop NaN and standardize
+            returns_df = returns_df.dropna()
+            scaler = StandardScaler()
+            returns_scaled = scaler.fit_transform(returns_df)
+            
+            # Perform PCA
+            pca = PCA(n_components=min(5, len(returns_df.columns)))
+            pca_result = pca.fit_transform(returns_scaled)
+            
+            # Get explained variance
+            explained_variance = pca.explained_variance_ratio_
+            cumulative_variance = np.cumsum(explained_variance)
+            
+            # Get factor loadings
+            loadings = pca.components_
+            feature_names = returns_df.columns.tolist()
+            
+            # Identify main risk factors
+            risk_factors = []
+            for i in range(min(3, len(loadings))):
+                factor_loadings = {}
+                for j, feature in enumerate(feature_names):
+                    loading = loadings[i, j]
+                    if abs(loading) > 0.3:  # Significant loading
+                        factor_loadings[feature] = float(loading)
+                
+                # Interpret factor
+                interpretation = self._interpret_risk_factor(factor_loadings, i)
+                
+                risk_factors.append({
+                    'factor': f'PC{i+1}',
+                    'variance_explained': float(explained_variance[i]),
+                    'cumulative_variance': float(cumulative_variance[i]),
+                    'loadings': factor_loadings,
+                    'interpretation': interpretation
+                })
+            
+            # Calculate stock's exposure to each factor
+            if 'stock' in returns_df.columns:
+                stock_idx = feature_names.index('stock')
+                stock_exposures = {}
+                for i in range(min(3, len(loadings))):
+                    stock_exposures[f'PC{i+1}'] = float(loadings[i, stock_idx])
+            else:
+                stock_exposures = {}
+            
+            return {
+                'risk_factors': risk_factors,
+                'total_factors': len(loadings),
+                'factors_for_90pct_variance': int(np.argmax(cumulative_variance >= 0.9) + 1),
+                'stock_factor_exposures': stock_exposures,
+                'market_concentration': float(explained_variance[0]) if len(explained_variance) > 0 else 0
+            }
+            
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def _interpret_risk_factor(self, loadings: Dict[str, float], factor_num: int) -> str:
+        """Interpret what a risk factor represents based on loadings"""
+        
+        # Sort by absolute loading
+        sorted_loadings = sorted(loadings.items(), key=lambda x: abs(x[1]), reverse=True)
+        
+        if factor_num == 0:
+            # First factor usually represents market risk
+            if any('SPY' in k or 'QQQ' in k for k, v in sorted_loadings[:2]):
+                return "Market risk factor"
+            elif any('TLT' in k or 'IEF' in k for k, v in sorted_loadings[:2]):
+                return "Interest rate risk factor"
+        
+        # Check for sector concentration
+        sectors = [k for k, v in sorted_loadings if k.startswith('XL')]
+        if len(sectors) >= 2:
+            return f"Sector risk factor ({', '.join(sectors[:2])})"
+        
+        # Check for commodity exposure
+        commodities = [k for k, v in sorted_loadings if k in ['GLD', 'SLV', 'USO', 'DBA']]
+        if commodities:
+            return f"Commodity risk factor ({', '.join(commodities)})"
+        
+        # Check for currency exposure
+        currencies = [k for k, v in sorted_loadings if k in ['UUP', 'FXE', 'FXY', 'FXC']]
+        if currencies:
+            return "Currency risk factor"
+        
+        # Default interpretation
+        top_assets = ', '.join([k for k, v in sorted_loadings[:2]])
+        return f"Risk factor driven by {top_assets}"

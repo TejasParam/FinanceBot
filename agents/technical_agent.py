@@ -280,22 +280,19 @@ class TechnicalAnalysisAgent(BaseAgent):
         return " ".join(reasoning_parts)
     
     def _calculate_indicators(self, data: pd.DataFrame) -> Dict[str, Any]:
-        """Calculate technical indicators from price data"""
+        """Calculate institutional-grade technical indicators"""
         close = data['Close']
         high = data['High']
         low = data['Low']
         volume = data['Volume']
+        open_price = data['Open']
         
         # Current price
         current_price = float(close.iloc[-1])
         
-        # RSI
+        # Standard indicators
         rsi = self._calculate_rsi(close)
-        
-        # MACD
         macd, macd_signal, macd_histogram = self._calculate_macd(close)
-        
-        # Bollinger Bands
         bb_upper, bb_middle, bb_lower = self._calculate_bollinger_bands(close)
         bb_position = (current_price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
         
@@ -303,6 +300,44 @@ class TechnicalAnalysisAgent(BaseAgent):
         sma_20 = close.rolling(window=20).mean().iloc[-1]
         sma_50 = close.rolling(window=50).mean().iloc[-1] if len(close) >= 50 else sma_20
         ema_12 = close.ewm(span=12, adjust=False).mean().iloc[-1]
+        
+        # Advanced indicators (institutional grade)
+        # 1. VWAP (Volume Weighted Average Price)
+        typical_price = (high + low + close) / 3
+        vwap = (typical_price * volume).rolling(window=20).sum() / volume.rolling(window=20).sum()
+        vwap_current = float(vwap.iloc[-1])
+        
+        # 2. Money Flow Index (MFI)
+        money_flow = typical_price * volume
+        positive_flow = money_flow.where(typical_price > typical_price.shift(1), 0)
+        negative_flow = money_flow.where(typical_price < typical_price.shift(1), 0)
+        mfi_ratio = positive_flow.rolling(14).sum() / negative_flow.rolling(14).sum()
+        mfi = 100 - (100 / (1 + mfi_ratio))
+        
+        # 3. Keltner Channels
+        atr = self._calculate_atr(high, low, close)
+        kc_upper = ema_12 + (2 * atr)
+        kc_lower = ema_12 - (2 * atr)
+        kc_position = (current_price - kc_lower) / (kc_upper - kc_lower) if kc_upper > kc_lower else 0.5
+        
+        # 4. Ichimoku Cloud components
+        period_9_high = high.rolling(window=9).max()
+        period_9_low = low.rolling(window=9).min()
+        tenkan_sen = (period_9_high + period_9_low) / 2
+        
+        period_26_high = high.rolling(window=26).max()
+        period_26_low = low.rolling(window=26).min()
+        kijun_sen = (period_26_high + period_26_low) / 2
+        
+        # 5. Market Profile (simplified)
+        price_levels = pd.cut(close, bins=20)
+        volume_profile = volume.groupby(price_levels).sum()
+        poc_index = volume_profile.idxmax()  # Point of Control
+        
+        # 6. Order Flow indicators
+        delta = close - open_price
+        cumulative_delta = delta.cumsum()
+        delta_divergence = (cumulative_delta.iloc[-1] - cumulative_delta.iloc[-20]) / 20
         
         # MACD signal determination
         if macd > macd_signal and macd_histogram > 0:
@@ -337,7 +372,18 @@ class TechnicalAnalysisAgent(BaseAgent):
             'sma_50': sma_50,
             'ema_12': ema_12,
             'sma_trend': sma_trend,
-            'volume_trend': volume_trend
+            'volume_trend': volume_trend,
+            # New institutional indicators
+            'vwap': vwap_current,
+            'price_vs_vwap': current_price / vwap_current,
+            'mfi': float(mfi.iloc[-1]) if not np.isnan(mfi.iloc[-1]) else 50,
+            'keltner_position': kc_position,
+            'tenkan_sen': float(tenkan_sen.iloc[-1]),
+            'kijun_sen': float(kijun_sen.iloc[-1]),
+            'ichimoku_signal': 'bullish' if current_price > float(kijun_sen.iloc[-1]) else 'bearish',
+            'delta_divergence': delta_divergence,
+            'atr': atr,
+            'atr_ratio': atr / current_price  # Normalized ATR
         }
     
     def _calculate_rsi(self, prices: pd.Series, period: int = 14) -> float:
@@ -365,3 +411,14 @@ class TechnicalAnalysisAgent(BaseAgent):
         upper_band = sma + (std * std_dev)
         lower_band = sma - (std * std_dev)
         return float(upper_band.iloc[-1]), float(sma.iloc[-1]), float(lower_band.iloc[-1])
+    
+    def _calculate_atr(self, high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> float:
+        """Calculate Average True Range (ATR)"""
+        high_low = high - low
+        high_close = np.abs(high - close.shift())
+        low_close = np.abs(low - close.shift())
+        
+        ranges = pd.concat([high_low, high_close, low_close], axis=1)
+        true_range = np.max(ranges, axis=1)
+        atr = true_range.rolling(period).mean()
+        return float(atr.iloc[-1])

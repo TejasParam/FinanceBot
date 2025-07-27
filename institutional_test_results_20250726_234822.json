@@ -1,0 +1,601 @@
+{
+  "ticker": "AAPL",
+  "timestamp": 1753588111.833614,
+  "execution_time": 8.886276721954346,
+  "agent_results": {
+    "FundamentalAnalysis": {
+      "score": 0.039660710595824114,
+      "confidence": 1.0,
+      "reasoning": "Mixed fundamental signals. High valuation (P/E: 32.9). Growth at reasonable price (PEG: 0.6). Declining revenue (-1.2%). Excellent earnings growth (21.6%).",
+      "breakdown": {
+        "financial": {
+          "revenue_growth": 0.06452986983153047,
+          "profit_margin": 0.14884853437108017,
+          "debt_to_equity": 0.6533646966578327,
+          "current_ratio": 1.4469075759667744,
+          "roa": 0.09670245542811422,
+          "roe": 0.09288587869443464
+        },
+        "valuation": {
+          "pe_ratio": 32.90353057067443,
+          "peg_ratio": 0.6440677168226839,
+          "price_to_book": 1.910832183446714,
+          "price_to_sales": 2.0640289926528674,
+          "ev_ebitda": 10.650929783225514,
+          "dividend_yield": 0.026401200808256566
+        },
+        "growth": {
+          "revenue_growth_3y": -0.01214674421906107,
+          "earnings_growth_3y": 0.21616033636311424,
+          "book_value_growth": 0.02940649375740176,
+          "dividend_growth": 0.13458980560037942,
+          "projected_growth": 0.10258355909347125
+        },
+        "quality": {
+          "earnings_stability": 1.0,
+          "revenue_stability": 0.7742926426248117,
+          "dividend_consistency": 0.8831557063946371,
+          "balance_sheet_strength": 0.7428052546062968,
+          "management_effectiveness": 0.7761163146853737
+        }
+      },
+      "overall_rating": "Hold"
+    },
+    "SentimentAnalysis": {
+      "score": 0.4150562099542994,
+      "confidence": 0.6071827743263856,
+      "reasoning": "Simulated analysis of 17 sources shows neutral sentiment",
+      "articles_analyzed": 17,
+      "source": "simulated",
+      "sentiment_distribution": {
+        "positive": 4,
+        "neutral": 4,
+        "negative": 3
+      },
+      "alternative_data": {
+        "social_media": {
+          "twitter_sentiment": 0.9042596641264729,
+          "twitter_volume": 2173,
+          "twitter_influencer_sentiment": -0.39948481951890114,
+          "reddit_sentiment": 0.042111150159785726,
+          "reddit_mentions": 736,
+          "reddit_wsb_score": 0.9348334765374022,
+          "stocktwits_sentiment": -0.9856607754739033,
+          "stocktwits_volume": 2075,
+          "discord_sentiment": 0.6208671900851577,
+          "sentiment_velocity": -0.2599235802943023,
+          "social_momentum": -0.5875186445640541
+        },
+        "web_traffic": {
+          "website_traffic_change": 0.1632061196274669,
+          "unique_visitors_growth": 0.24673837493372955,
+          "page_views_per_visit": 0.8699101031844341,
+          "bounce_rate_change": -0.045987892240976304,
+          "app_downloads_change": 0.18903801519979754,
+          "app_daily_active_users": 1.2197846727437631,
+          "app_retention_rate": 0.7766871821421542,
+          "mobile_vs_desktop": 0.6227803068174591
+        },
+        "satellite": {
+          "parking_lot_traffic": 1.2699590299925396,
+          "parking_lot_cars_counted": 3511,
+          "store_foot_traffic": 1.1040946249415395,
+          "factory_activity_index": 0.7011021096534522,
+          "shipping_containers_count": 653,
+          "oil_storage_levels": 0.7357814907298605,
+          "construction_activity": 1.0076674755289017,
+          "agricultural_yield_forecast": 1.117403068928692
+        },
+        "search_trends": {
+          "google_search_volume": 91,
+          "google_trend_momentum": 0.06339950407309702,
+          "amazon_search_rank": 844,
+          "amazon_review_sentiment": 3.6821455895234987,
+          "amazon_review_volume_change": -0.08775657722443846,
+          "ebay_listing_growth": 0.1103260986496866,
+          "product_search_trends": 0.06198891222932856,
+          "competitor_search_ratio": 0.8858137945980344
+        },
+        "credit_card": {
+          "transaction_volume_change": -0.05810729113867613,
+          "average_ticket_size_change": 0.10501341874603429,
+          "customer_retention": 0.8295869879955776,
+          "new_customer_growth": 0.02809819815433255,
+          "market_share_change": 0.005473789205552419,
+          "category_spending_trend": -0.09695912258050793
+        },
+        "job_postings": {
+          "job_postings_change": -0.029986177368646616,
+          "engineering_hiring": 18,
+          "sales_hiring": 50,
+          "employee_satisfaction": 4.346448537960027,
+          "employee_turnover_estimate": 0.16706606230575144,
+          "salary_competitiveness": 1.196572644232169,
+          "remote_job_percentage": 0.7148064330805061
+        },
+        "supply_chain": {
+          "import_volume_change": -0.10544917268133386,
+          "supplier_reliability": 0.7628651278030573,
+          "lead_time_changes": 0.875650750820278,
+          "inventory_turnover": 5.893513978018701,
+          "port_congestion_impact": 1.0193616216894,
+          "shipping_cost_index": 1.2989566541333057
+        },
+        "regulatory": {
+          "sec_filings_sentiment": -0.013853866727313008,
+          "insider_buying_ratio": 0.7599517336280301,
+          "patent_applications": 9,
+          "patent_citations": 13,
+          "regulatory_risk_score": 0.2775607533898462,
+          "lobbying_spend_change": 0.011348554088489782
+        },
+        "esg": {
+          "environmental_score": 0.4147941286761642,
+          "carbon_intensity_trend": 0.023700956208703952,
+          "social_score": 0.5755998274360316,
+          "diversity_score": 0.2866553434409983,
+          "governance_score": 0.5081501883130836,
+          "board_independence": 0.9294364736322098,
+          "esg_momentum": -0.015011639128330728,
+          "controversy_score": 0.00032554102785198324
+        },
+        "weather": {
+          "weather_impact_score": 0.10648583674216383,
+          "seasonal_performance": 0.8825725733027,
+          "climate_risk_exposure": 0.6439807248484726,
+          "natural_disaster_impact": 0.047701141321868985
+        },
+        "combined_score": 0.09001492117794582,
+        "signal_quality": {
+          "data_completeness": 0.9032339979750541,
+          "data_freshness_hours": 23.53308677066479,
+          "confidence_interval": 0.850709491296344,
+          "statistical_significance": 0.8697672975580768
+        },
+        "feature_importance": {
+          "social_sentiment": 0.15,
+          "web_traffic": 0.1,
+          "satellite": 0.15,
+          "search_trends": 0.1,
+          "credit_card": 0.2,
+          "job_data": 0.1,
+          "supply_chain": 0.05,
+          "regulatory": 0.05,
+          "esg": 0.05,
+          "weather": 0.05
+        },
+        "data_sources_count": 10,
+        "last_updated": "2025-07-26 23:47:59"
+      }
+    },
+    "TechnicalAnalysis": {
+      "score": 0.1275,
+      "confidence": 0.65,
+      "reasoning": "Technical indicators show mixed signals. Current trend: Uptrend. MACD shows bullish crossover.",
+      "trend": "uptrend",
+      "momentum": "strong_bullish",
+      "indicators": {
+        "rsi": 65.0344343692247,
+        "macd_signal": "bullish",
+        "bb_position": 0.7490547669651815,
+        "sma_trend": "bullish",
+        "volume_trend": "normal"
+      },
+      "raw_data": {
+        "current_price": 213.8800048828125,
+        "rsi": 65.0344343692247,
+        "macd": 2.609959679956944,
+        "macd_signal": "bullish",
+        "macd_histogram": 0.2113729270270892,
+        "bollinger_bands": [
+          217.16022137475156,
+          210.62449951171874,
+          204.08877764868592
+        ],
+        "bb_position": 0.7490547669651815,
+        "sma_20": 210.62449951171874,
+        "sma_50": 205.40419982910157,
+        "ema_12": 211.87996589589076,
+        "sma_trend": "bullish",
+        "volume_trend": "normal",
+        "vwap": 210.01847975655878,
+        "price_vs_vwap": 1.0183865968877108,
+        "mfi": 66.87295058500682,
+        "keltner_position": 0.6662739406705817,
+        "tenkan_sen": 212.20999908447266,
+        "kijun_sen": 205.6500015258789,
+        "ichimoku_signal": "bullish",
+        "delta_divergence": 0.42750015258789065,
+        "atr": 3.0071443830217635,
+        "atr_ratio": 0.014059960325274049
+      }
+    },
+    "PatternRecognition": {
+      "score": 0.3,
+      "confidence": 0.74,
+      "reasoning": "Detected patterns: near_support, above_all_mas, doji. Strong pattern alignment. Key levels: Support $213.40, Resistance $216.23. Neutral pattern outlook",
+      "patterns_detected": [
+        "near_support",
+        "above_all_mas",
+        "doji",
+        "uptrend_continuation",
+        "double_bottom"
+      ],
+      "pattern_strength": 0.8,
+      "key_levels": {
+        "support": 213.4,
+        "resistance": 216.22999572753906
+      }
+    },
+    "RegimeDetection": {
+      "score": 0.24602681317588815,
+      "confidence": 0.551940878253727,
+      "reasoning": "Sideways market with consolidation patterns. Strong bullish trend indicators. Positive momentum supports bullish outlook.",
+      "regime": "sideways",
+      "regime_strength": 0.24602681317588815,
+      "metrics": {
+        "volatility": 0.31719684089872807,
+        "trend_strength": 0.4,
+        "price_range": 0.49611824349254613,
+        "momentum": 0.06301340658794408,
+        "volume_trend": 0.8462650963628833
+      },
+      "raw_metrics": {
+        "volatility": 0.31719684089872807,
+        "price_vs_sma20": 1.0154564420503829,
+        "price_vs_sma50": 1.0412640299505214,
+        "price_vs_sma200": 0.9648780816644559,
+        "sma20_trend": 0.0284901575017511,
+        "sma50_trend": 0.014182098475256089,
+        "trend_strength": 0.4,
+        "price_range": 0.49611824349254613,
+        "momentum": 0.06301340658794408,
+        "volume_trend": 0.8462650963628833,
+        "max_drawdown": -0.33360518814967316,
+        "current_drawdown": -0.17228032788395423
+      }
+    },
+    "MLPrediction": {
+      "score": 0.8040043360832965,
+      "confidence": 0.7507605742672295,
+      "reasoning": "Simulated ML ensemble predicts DOWN movement with 75.1% confidence",
+      "prediction": 0,
+      "probability_up": 0.8040043360832965,
+      "probability_down": 0.19599566391670353,
+      "ensemble_prediction": 0,
+      "model_predictions": {
+        "random_forest": {
+          "prediction": 0,
+          "probability": 0.5971297075483353
+        },
+        "gradient_boost": {
+          "prediction": 1,
+          "probability": 0.7103442800046171
+        },
+        "logistic": {
+          "prediction": 0,
+          "probability": 0.7285338194155195
+        }
+      },
+      "features_used": 40,
+      "note": "Simulated prediction - install ML dependencies for real predictions"
+    },
+    "VolatilityAnalysis": {
+      "score": 0.4,
+      "confidence": 0.8,
+      "reasoning": "Low volatility environment favors trend following. Volatility is decreasing - market stabilizing. Low risk environment. Deep market liquidity detected. Volatility conditions favor bullish positions",
+      "volatility_signals": {
+        "vol_5d": 0.0761077956341671,
+        "vol_20d": 0.14651990510205437,
+        "vol_60d": 0.23603897121589137,
+        "vol_trend": "decreasing",
+        "volatility_regime": "low",
+        "volatility_clustering": "False",
+        "intraday_vol": 0.012744067286637711,
+        "intraday_vol_trend": "stable",
+        "vol_of_vol": 0.020240199840154155,
+        "vol_stability": "stable",
+        "vol_skew": 0.8773257984552344,
+        "vol_asymmetry": "neutral",
+        "risk_level": "low",
+        "order_imbalance_recent": -0.04018620236199296,
+        "order_imbalance_medium": 0.10178083870638996,
+        "large_buy_days_5d": 0,
+        "large_sell_days_5d": 0,
+        "hidden_liquidity": "high",
+        "accumulation_distribution": "neutral",
+        "order_imbalance_signal": "balanced",
+        "smart_money_direction": "bearish",
+        "spread_proxy": 0.012744067286637711,
+        "spread_widening": "False",
+        "price_efficiency": 0.43805575457293194,
+        "trending_market": "True",
+        "reversal_rate": 0.45161290322580644,
+        "noisy_market": "False",
+        "price_impact_coefficient": 0.008390091120776235,
+        "market_depth": "deep",
+        "potential_quote_stuffing": 0,
+        "twap_deviation": 0.015456442050382801,
+        "vwap_deviation": 0.01819899521923156,
+        "institutional_activity": "normal"
+      },
+      "risk_level": "low",
+      "volatility_regime": "low"
+    },
+    "MarketTiming": {
+      "score": 0.52,
+      "confidence": 0.7000000000000001,
+      "reasoning": "Strong uptrend with aligned moving averages. Market in stable uptrend phase. Timing favors bullish entry",
+      "timing_signals": {
+        "trend": "strong_uptrend",
+        "momentum": "neutral",
+        "volume": "normal",
+        "sr_level": "at_resistance",
+        "market_phase": "trending_up",
+        "avg_spread_proxy": 0.01919518328946126,
+        "recent_spread_proxy": 0.012724190110256533,
+        "bid_ask_imbalance": -0.19800045236138641,
+        "liquidity_score": 10,
+        "market_depth_proxy": 3.1220979638570943,
+        "price_impact": 1.4193241358131279,
+        "spread_widening": false,
+        "buying_pressure": 0.6060282117102312,
+        "selling_pressure": 0.3939717882897688,
+        "order_flow_imbalance": 0.21205642342046244,
+        "large_trade_count": 2,
+        "accumulation_distribution_trend": 4687962.782744126,
+        "net_order_flow": "bullish",
+        "hft_signals": {
+          "quote_stuffing_detected": false,
+          "layering_signals": 2,
+          "momentum_ignition": 7,
+          "iceberg_orders": 7,
+          "micro_alpha": {
+            "tick_pressure": 489.6775,
+            "vpin_score": 0.475642571937081,
+            "twap_signal": 0.015456442050382801,
+            "impl_shortfall": 0.00043866376194036583
+          },
+          "dark_pool_activity": {
+            "round_lot_percentage": 0.15041005040565922,
+            "block_trade_count": 0,
+            "price_improvement_rate": 0.25806451612903225,
+            "hidden_liquidity_signals": 0,
+            "dark_pool_probability": 0.4084745665346915
+          },
+          "hft_risk_score": 0.3
+        },
+        "trend_strength": 1.0,
+        "momentum_strength": 0.0,
+        "volume_ratio": 0.8975676034545845,
+        "price_position": 0.9609617625057421
+      },
+      "market_phase": "trending_up",
+      "trend_strength": 1.0
+    },
+    "IntermarketAnalysis": {
+      "score": 0.6000000000000001,
+      "confidence": 0.6999999999999998,
+      "reasoning": "Market regime: unknown trend with unknown. Stock showing relative strength vs market (2.8%). Leading sectors: XLI, XLB. Favorable intermarket conditions",
+      "correlations": {
+        "cross_correlations": {},
+        "risk_factors": {},
+        "beta": {}
+      },
+      "sector_analysis": {
+        "sector_performance": {
+          "XLF": {
+            "returns_1m": 0.02887947708240146,
+            "returns_3m": 0.0997363501232682,
+            "momentum": 0.024513504123713524,
+            "rank_1m": 6,
+            "rank_3m": 5
+          },
+          "XLK": {
+            "returns_1m": 0.044742137300135765,
+            "returns_3m": 0.24981763852720507,
+            "momentum": 0.006211728424536503,
+            "rank_1m": 3,
+            "rank_3m": 1
+          },
+          "XLE": {
+            "returns_1m": 0.021101938545900145,
+            "returns_3m": 0.09078940642480449,
+            "momentum": 0.011940741616865463,
+            "rank_1m": 8,
+            "rank_3m": 6
+          },
+          "XLV": {
+            "returns_1m": 0.019039820736277413,
+            "returns_3m": -0.0237664842049381,
+            "momentum": 0.04600180287420086,
+            "rank_1m": 9,
+            "rank_3m": 10
+          },
+          "XLI": {
+            "returns_1m": 0.05586220166280165,
+            "returns_3m": 0.18474107544841445,
+            "momentum": 0.050144044842798476,
+            "rank_1m": 1,
+            "rank_3m": 2
+          },
+          "XLY": {
+            "returns_1m": 0.028729579964809737,
+            "returns_3m": 0.14239132515976682,
+            "momentum": 0.009995384876363866,
+            "rank_1m": 7,
+            "rank_3m": 3
+          },
+          "XLP": {
+            "returns_1m": 0.011793878488518095,
+            "returns_3m": 0.00279942440056824,
+            "momentum": 0.02265461551018011,
+            "rank_1m": 10,
+            "rank_3m": 9
+          },
+          "XLRE": {
+            "returns_1m": 0.04061288976220401,
+            "returns_3m": 0.04544978796287502,
+            "momentum": 0.06607585020344967,
+            "rank_1m": 4,
+            "rank_3m": 8
+          },
+          "XLB": {
+            "returns_1m": 0.05097284546643466,
+            "returns_3m": 0.10669383571204172,
+            "momentum": 0.0663810790288554,
+            "rank_1m": 2,
+            "rank_3m": 4
+          },
+          "XLU": {
+            "returns_1m": 0.039222854299674426,
+            "returns_3m": 0.07866704224902299,
+            "momentum": 0.052223361183007855,
+            "rank_1m": 5,
+            "rank_3m": 7
+          }
+        },
+        "current_leaders": [
+          "XLI",
+          "XLB",
+          "XLK"
+        ],
+        "previous_leaders": [
+          "XLK",
+          "XLI",
+          "XLY"
+        ],
+        "rotation_signal": "offensive",
+        "momentum_shift": false
+      },
+      "market_regime": {
+        "trend": "unknown",
+        "volatility_regime": "unknown",
+        "risk_regime": "unknown"
+      },
+      "relative_strength": {
+        "rs_1m": 0.027569683491023733,
+        "rs_3m": -0.14446254758766242,
+        "rs_improving": true,
+        "rs_rank": "strong",
+        "outperforming": true
+      },
+      "divergences": [],
+      "intermarket_signals": {
+        "correlation_signals": [],
+        "regime_signals": [],
+        "sector_signals": []
+      }
+    }
+  },
+  "aggregated_analysis": {
+    "overall_score": 0.5157463473521697,
+    "overall_confidence": 0.8,
+    "recommendation": "BUY",
+    "reasoning": "Multi-agent analysis suggests bullish conditions. Moderate consensus leans bullish. Supported by Sentiment, PatternRecognition analysis.",
+    "agent_consensus": {
+      "level": "medium",
+      "direction": "bullish",
+      "strength": 0.7755923939429354,
+      "average_score": 0.38358311886770097,
+      "score_std": 0.22440760605706456
+    },
+    "component_scores": {
+      "FundamentalAnalysis": 0.039660710595824114,
+      "SentimentAnalysis": 0.4150562099542994,
+      "TechnicalAnalysis": 0.1275,
+      "PatternRecognition": 0.3,
+      "RegimeDetection": 0.24602681317588815,
+      "MLPrediction": 0.8040043360832965,
+      "VolatilityAnalysis": 0.4,
+      "MarketTiming": 0.52,
+      "IntermarketAnalysis": 0.6000000000000001
+    },
+    "component_confidences": {
+      "FundamentalAnalysis": 1.0,
+      "SentimentAnalysis": 0.6071827743263856,
+      "TechnicalAnalysis": 0.65,
+      "PatternRecognition": 0.74,
+      "RegimeDetection": 0.551940878253727,
+      "MLPrediction": 0.7507605742672295,
+      "VolatilityAnalysis": 0.8,
+      "MarketTiming": 0.7000000000000001,
+      "IntermarketAnalysis": 0.6999999999999998
+    },
+    "agents_contributing": 9
+  },
+  "risk_metrics": {
+    "risk_score": 0.31056715866115975,
+    "volatility_annualized": 2.3259313861249185,
+    "var_95": 0.24102524389287944,
+    "var_99": 0.34080529926737846,
+    "max_drawdown_estimate": 0.4395597153061631,
+    "agent_disagreement": 0.22440760605706456,
+    "market_risk": 0.00922988645287666
+  },
+  "risk_adjusted_score": 0.36102244314651877,
+  "trading_signals": {
+    "entry_signal": "STRONG_BUY",
+    "position_size": 0.09,
+    "kelly_size": 0.1,
+    "stop_loss_pct": 0.05,
+    "take_profit_pct": 0.075,
+    "time_horizon": "short_term",
+    "risk_reward_ratio": 1.5,
+    "confidence_level": "medium",
+    "volatility_regime": "extreme_vol",
+    "portfolio_heat": 0.004,
+    "max_portfolio_heat": 0.06
+  },
+  "market_context": {
+    "trend": "strong_up",
+    "volatility": 0.00922988645287666,
+    "momentum_5d": 0.012785359885756353,
+    "momentum_20d": 0.0640796262826493,
+    "volume_surge": false
+  },
+  "should_trade": true,
+  "filter_reason": "All conditions favorable",
+  "confidence_threshold": 0.7,
+  "agents_executed": 9,
+  "agents_successful": 9,
+  "system_confidence": 0.804,
+  "execution_quality": {
+    "strategy": "twap",
+    "urgency": "normal",
+    "execution_style": "limit",
+    "time_constraints": null,
+    "slicing_strategy": {
+      "duration_minutes": 60,
+      "slices": 20
+    },
+    "optimal_timing": "standard",
+    "limit_strategy": {
+      "initial_offset_bps": -2,
+      "improvement_steps": 2,
+      "max_wait_seconds": 60
+    },
+    "flow_strategy": "contrarian",
+    "routing": {
+      "dark_pool_eligible": true,
+      "use_midpoint": true,
+      "avoid_lit_markets": "False",
+      "preferred_venues": [
+        "IEX",
+        "NASDAQ"
+      ]
+    },
+    "analytics": {
+      "expected_slippage_bps": 67.3,
+      "expected_market_impact_bps": 3.0,
+      "total_expected_cost_bps": 70.3,
+      "break_even_move_required": 0.00703
+    },
+    "risk_controls": {
+      "max_participation_rate": 0.1,
+      "price_limit_pct": 0.002,
+      "time_limit_minutes": 120,
+      "cancel_if_adverse_move_pct": 0.005
+    }
+  }
+}

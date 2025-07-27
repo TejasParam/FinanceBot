@@ -8,8 +8,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing import Dict, Any
 from .base_agent import BaseAgent
-from technical_analysis_enhanced import EnhancedTechnicalAnalyst
 from data_collection import DataCollectionAgent
+import pandas as pd
+import numpy as np
 
 class TechnicalAnalysisAgent(BaseAgent):
     """
@@ -20,7 +21,6 @@ class TechnicalAnalysisAgent(BaseAgent):
     def __init__(self):
         super().__init__("TechnicalAnalysis")
         self.data_collector = DataCollectionAgent()
-        self.technical_analyzer = EnhancedTechnicalAnalyst()
         
     def analyze(self, ticker: str, period: str = "6mo", **kwargs) -> Dict[str, Any]:
         """
@@ -35,8 +35,8 @@ class TechnicalAnalysisAgent(BaseAgent):
         """
         try:
             # Get historical data
-            data = self.technical_analyzer.getData(ticker)
-            if data is None or len(data) == 0 or len(data[0]) < 20:
+            price_data = self.data_collector.get_historical_data(ticker, period=period)
+            if price_data is None or len(price_data) < 20:
                 return {
                     'error': f'Insufficient data for technical analysis of {ticker}',
                     'score': 0.0,
@@ -44,18 +44,8 @@ class TechnicalAnalysisAgent(BaseAgent):
                     'reasoning': 'Not enough historical data for technical analysis'
                 }
             
-            # Use the first DataFrame from the returned list
-            price_data = data[0]
-            
-            # Calculate technical indicators using existing methods
-            indicators = {
-                'rsi': self.technical_analyzer.calculate_rsi(ticker),
-                'macd': self.technical_analyzer.calculate_macd(ticker),
-                'bollinger_bands': self.technical_analyzer.calculate_bollinger_bands(ticker),
-                'sma_20': self.technical_analyzer.calculate_sma(ticker, 20),
-                'ema_12': self.technical_analyzer.calculate_ema(ticker, 12),
-                'current_price': float(price_data['Close'].iloc[-1])
-            }
+            # Calculate technical indicators
+            indicators = self._calculate_indicators(price_data)
             
             # Generate technical score
             tech_score = self._calculate_technical_score(indicators)
@@ -288,3 +278,90 @@ class TechnicalAnalysisAgent(BaseAgent):
             reasoning_parts.append("Price near upper Bollinger Band suggests potential pullback.")
         
         return " ".join(reasoning_parts)
+    
+    def _calculate_indicators(self, data: pd.DataFrame) -> Dict[str, Any]:
+        """Calculate technical indicators from price data"""
+        close = data['Close']
+        high = data['High']
+        low = data['Low']
+        volume = data['Volume']
+        
+        # Current price
+        current_price = float(close.iloc[-1])
+        
+        # RSI
+        rsi = self._calculate_rsi(close)
+        
+        # MACD
+        macd, macd_signal, macd_histogram = self._calculate_macd(close)
+        
+        # Bollinger Bands
+        bb_upper, bb_middle, bb_lower = self._calculate_bollinger_bands(close)
+        bb_position = (current_price - bb_lower) / (bb_upper - bb_lower) if bb_upper > bb_lower else 0.5
+        
+        # Moving Averages
+        sma_20 = close.rolling(window=20).mean().iloc[-1]
+        sma_50 = close.rolling(window=50).mean().iloc[-1] if len(close) >= 50 else sma_20
+        ema_12 = close.ewm(span=12, adjust=False).mean().iloc[-1]
+        
+        # MACD signal determination
+        if macd > macd_signal and macd_histogram > 0:
+            macd_signal_type = 'bullish'
+        elif macd < macd_signal and macd_histogram < 0:
+            macd_signal_type = 'bearish'
+        else:
+            macd_signal_type = 'neutral'
+        
+        # SMA trend
+        if current_price > sma_20 > sma_50:
+            sma_trend = 'bullish'
+        elif current_price < sma_20 < sma_50:
+            sma_trend = 'bearish'
+        else:
+            sma_trend = 'neutral'
+        
+        # Volume trend
+        vol_avg = volume.rolling(window=20).mean().iloc[-1]
+        recent_vol = volume.iloc[-5:].mean()
+        volume_trend = 'increasing' if recent_vol > vol_avg * 1.2 else 'decreasing' if recent_vol < vol_avg * 0.8 else 'normal'
+        
+        return {
+            'current_price': current_price,
+            'rsi': rsi,
+            'macd': macd,
+            'macd_signal': macd_signal_type,
+            'macd_histogram': macd_histogram,
+            'bollinger_bands': (bb_upper, bb_middle, bb_lower),
+            'bb_position': bb_position,
+            'sma_20': sma_20,
+            'sma_50': sma_50,
+            'ema_12': ema_12,
+            'sma_trend': sma_trend,
+            'volume_trend': volume_trend
+        }
+    
+    def _calculate_rsi(self, prices: pd.Series, period: int = 14) -> float:
+        """Calculate RSI"""
+        delta = prices.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return float(rsi.iloc[-1])
+    
+    def _calculate_macd(self, prices: pd.Series) -> tuple:
+        """Calculate MACD"""
+        ema_12 = prices.ewm(span=12, adjust=False).mean()
+        ema_26 = prices.ewm(span=26, adjust=False).mean()
+        macd = ema_12 - ema_26
+        macd_signal = macd.ewm(span=9, adjust=False).mean()
+        macd_histogram = macd - macd_signal
+        return float(macd.iloc[-1]), float(macd_signal.iloc[-1]), float(macd_histogram.iloc[-1])
+    
+    def _calculate_bollinger_bands(self, prices: pd.Series, period: int = 20, std_dev: int = 2) -> tuple:
+        """Calculate Bollinger Bands"""
+        sma = prices.rolling(window=period).mean()
+        std = prices.rolling(window=period).std()
+        upper_band = sma + (std * std_dev)
+        lower_band = sma - (std * std_dev)
+        return float(upper_band.iloc[-1]), float(sma.iloc[-1]), float(lower_band.iloc[-1])

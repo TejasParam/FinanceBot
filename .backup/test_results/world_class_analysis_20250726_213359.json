@@ -1,0 +1,93 @@
+{
+  "timestamp": "20250726_213359",
+  "results": {
+    "AAPL": {
+      "score": 0.7524347512474479,
+      "confidence": 0.95,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.29931002598244705,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 1.0,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.125,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 2.5,
+        "confidence_level": "high"
+      }
+    },
+    "MSFT": {
+      "score": 0.5656200736749027,
+      "confidence": 0.95,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.3320121842216982,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 1.0,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.125,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 2.5,
+        "confidence_level": "high"
+      }
+    },
+    "NVDA": {
+      "score": 0.4967426994273272,
+      "confidence": 0.8056901560100621,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.38329776588434994,
+      "signals": {
+        "entry_signal": "BUY",
+        "position_size": 0.85,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.125,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 2.5,
+        "confidence_level": "medium"
+      }
+    },
+    "JPM": {
+      "score": 0.7226218098280816,
+      "confidence": 0.8370960289599457,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.35049472511975965,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 0.85,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.125,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 2.5,
+        "confidence_level": "medium"
+      }
+    },
+    "TSLA": {
+      "score": 0.06562525064942387,
+      "confidence": 0.4712027617410182,
+      "recommendation": "HOLD",
+      "risk_score": 0.47321747652729,
+      "signals": {
+        "entry_signal": "HOLD",
+        "position_size": 0.7,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.1,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 2.0,
+        "confidence_level": "low"
+      }
+    }
+  },
+  "summary": {
+    "buy_signals": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "JPM"
+    ],
+    "sell_signals": [],
+    "hold_signals": [
+      "TSLA"
+    ],
+    "total_stocks": 5
+  }
+}

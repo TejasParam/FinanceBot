@@ -1,0 +1,113 @@
+{
+  "timestamp": "20250726_214850",
+  "results": {
+    "AAPL": {
+      "score": 0.6637957349921547,
+      "confidence": 0.95,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.3023924179307488,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 0.19,
+        "kelly_size": 0.19,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.075,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 1.5,
+        "confidence_level": "high",
+        "volatility_regime": "extreme_vol",
+        "portfolio_heat": 0.009,
+        "max_portfolio_heat": 0.06
+      }
+    },
+    "MSFT": {
+      "score": 0.5740293950693309,
+      "confidence": 0.95,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.3389583244664619,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 0.17,
+        "kelly_size": 0.17,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.075,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 1.5,
+        "confidence_level": "high",
+        "volatility_regime": "extreme_vol",
+        "portfolio_heat": 0.009,
+        "max_portfolio_heat": 0.06
+      }
+    },
+    "NVDA": {
+      "score": 0.5693570554455868,
+      "confidence": 0.9367924528301886,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.37793993808661275,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 0.17,
+        "kelly_size": 0.17,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.075,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 1.5,
+        "confidence_level": "high",
+        "volatility_regime": "extreme_vol",
+        "portfolio_heat": 0.008,
+        "max_portfolio_heat": 0.06
+      }
+    },
+    "JPM": {
+      "score": 0.5720579622391017,
+      "confidence": 0.8540131363312469,
+      "recommendation": "STRONG_BUY",
+      "risk_score": 0.35793364087409446,
+      "signals": {
+        "entry_signal": "STRONG_BUY",
+        "position_size": 0.17,
+        "kelly_size": 0.17,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.075,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 1.5,
+        "confidence_level": "high",
+        "volatility_regime": "extreme_vol",
+        "portfolio_heat": 0.008,
+        "max_portfolio_heat": 0.06
+      }
+    },
+    "TSLA": {
+      "score": 0.0701096716008264,
+      "confidence": 0.4751643291051116,
+      "recommendation": "HOLD",
+      "risk_score": 0.4812361946622292,
+      "signals": {
+        "entry_signal": "HOLD",
+        "position_size": 0.05,
+        "kelly_size": 0.08,
+        "stop_loss_pct": 0.05,
+        "take_profit_pct": 0.075,
+        "time_horizon": "short_term",
+        "risk_reward_ratio": 1.5,
+        "confidence_level": "low",
+        "volatility_regime": "extreme_vol",
+        "portfolio_heat": 0.003,
+        "max_portfolio_heat": 0.06
+      }
+    }
+  },
+  "summary": {
+    "buy_signals": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "JPM"
+    ],
+    "sell_signals": [],
+    "hold_signals": [
+      "TSLA"
+    ],
+    "total_stocks": 5
+  }
+}

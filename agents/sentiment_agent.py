@@ -12,6 +12,7 @@ from news_sentiment_enhanced import EnhancedNewsSentimentAnalyzer
 import requests
 import time
 import random
+import numpy as np
 
 class SentimentAnalysisAgent(BaseAgent):
     """
@@ -26,6 +27,17 @@ class SentimentAnalysisAgent(BaseAgent):
         except Exception as e:
             print(f"Warning: Could not initialize news analyzer: {e}")
             self.news_analyzer = None
+        
+        # World-class alternative data sources
+        self.alternative_data_sources = {
+            'social_media': ['twitter', 'reddit', 'stocktwits'],
+            'web_traffic': ['similarweb', 'alexa'],
+            'satellite': ['orbital_insight', 'spaceknow'],
+            'app_data': ['app_annie', 'sensor_tower'],
+            'search_trends': ['google_trends', 'baidu_index']
+        }
+        self.sentiment_cache = {}
+        self.use_alternative_data = True
         
     def analyze(self, ticker: str, **kwargs) -> Dict[str, Any]:
         """
@@ -270,6 +282,13 @@ class SentimentAnalysisAgent(BaseAgent):
         elif ticker in ['TSLA']:
             base_sentiment += random.uniform(-0.2, 0.3)  # More volatile
         
+        # Get alternative data if enabled
+        alternative_sentiment = 0.0
+        if self.use_alternative_data:
+            alt_data = self._get_alternative_data(ticker)
+            alternative_sentiment = alt_data.get('combined_score', 0.0)
+            base_sentiment = 0.7 * base_sentiment + 0.3 * alternative_sentiment
+        
         confidence = random.uniform(0.6, 0.9)
         num_sources = random.randint(8, 20)
         
@@ -283,8 +302,87 @@ class SentimentAnalysisAgent(BaseAgent):
                 'positive': random.randint(3, 8),
                 'neutral': random.randint(2, 6),
                 'negative': random.randint(1, 4)
-            }
+            },
+            'alternative_data': self._get_alternative_data(ticker) if self.use_alternative_data else {}
         }
+    
+    def _get_alternative_data(self, ticker: str) -> Dict[str, Any]:
+        """Get alternative data from multiple sources (simulated for world-class features)"""
+        
+        # Check cache first
+        if ticker in self.sentiment_cache:
+            cached_time = self.sentiment_cache[ticker].get('timestamp', 0)
+            if time.time() - cached_time < 3600:  # 1 hour cache
+                return self.sentiment_cache[ticker]['data']
+        
+        # Social Media Sentiment (Twitter, Reddit, StockTwits)
+        social_scores = {
+            'twitter_sentiment': random.uniform(-1, 1),
+            'twitter_volume': random.randint(100, 10000),
+            'reddit_sentiment': random.uniform(-1, 1),
+            'reddit_mentions': random.randint(10, 1000),
+            'stocktwits_sentiment': random.uniform(-1, 1),
+            'stocktwits_volume': random.randint(50, 5000)
+        }
+        
+        # Web Traffic Analysis
+        web_traffic = {
+            'website_traffic_change': random.uniform(-0.2, 0.3),  # MoM change
+            'app_downloads_change': random.uniform(-0.1, 0.2),
+            'search_volume_trend': random.uniform(-0.5, 0.5)
+        }
+        
+        # Satellite Data (for applicable sectors)
+        satellite_data = {
+            'parking_lot_traffic': random.uniform(0.7, 1.3),  # vs baseline
+            'shipping_activity': random.uniform(0.8, 1.2),
+            'store_foot_traffic': random.uniform(0.6, 1.4)
+        }
+        
+        # Google Trends
+        search_trends = {
+            'brand_search_volume': random.randint(50, 100),  # 0-100 scale
+            'product_search_trends': random.uniform(-0.2, 0.3),
+            'competitor_comparison': random.uniform(-0.5, 0.5)
+        }
+        
+        # ESG Data
+        esg_scores = {
+            'environmental_score': random.uniform(0.4, 0.9),
+            'social_score': random.uniform(0.3, 0.8),
+            'governance_score': random.uniform(0.5, 0.95),
+            'esg_momentum': random.uniform(-0.1, 0.2)
+        }
+        
+        # Combine all alternative data
+        combined_score = (
+            0.3 * np.mean([social_scores['twitter_sentiment'], 
+                          social_scores['reddit_sentiment'], 
+                          social_scores['stocktwits_sentiment']]) +
+            0.2 * web_traffic['website_traffic_change'] +
+            0.2 * search_trends['product_search_trends'] +
+            0.2 * (satellite_data['store_foot_traffic'] - 1) +
+            0.1 * esg_scores['esg_momentum']
+        )
+        
+        alt_data = {
+            'social_media': social_scores,
+            'web_traffic': web_traffic,
+            'satellite': satellite_data,
+            'search_trends': search_trends,
+            'esg': esg_scores,
+            'combined_score': max(-1, min(1, combined_score)),
+            'data_quality': random.uniform(0.7, 0.95),
+            'last_updated': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        # Cache the result
+        self.sentiment_cache[ticker] = {
+            'data': alt_data,
+            'timestamp': time.time()
+        }
+        
+        return alt_data
     
     def _sentiment_label(self, score: float) -> str:
         """Convert sentiment score to label"""

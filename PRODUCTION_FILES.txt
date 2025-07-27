@@ -1,0 +1,27 @@
+# Core Production Files - DO NOT MOVE
+
+## Main System Files
+test_world_class_system.py
+run_backtest.py
+data_collection.py
+ml_predictor_enhanced.py
+news_sentiment_enhanced.py
+
+## Agents Directory (all files)
+agents/*.py
+
+## Backtesting Directory
+backtesting/backtest_runner.py
+backtesting/historical_backtest.py
+backtesting/configs/
+backtesting/results/
+
+## Configuration
+config.json
+requirements.txt
+README.md
+WORLD_CLASS_FEATURES.md
+
+## Data Directories
+models/
+logs/

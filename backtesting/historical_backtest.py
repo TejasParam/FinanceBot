@@ -18,7 +18,7 @@ import yfinance as yf
 import warnings
 warnings.filterwarnings('ignore')
 
-from agentic_portfolio_manager import AgenticPortfolioManager
+from agents.coordinator import AgentCoordinator
 from data_collection import DataCollectionAgent
 
 # Setup logging
@@ -33,9 +33,9 @@ class HistoricalBacktest:
     
     def __init__(self, initial_capital: float = 100000):
         self.initial_capital = initial_capital
-        self.agentic_manager = AgenticPortfolioManager(
-            use_ml=True,
-            use_llm=True,
+        self.coordinator = AgentCoordinator(
+            enable_ml=True,
+            enable_llm=False,  # Disable LLM for faster backtesting
             parallel_execution=True
         )
         self.data_collector = DataCollectionAgent()
@@ -141,22 +141,29 @@ class HistoricalBacktest:
                     
                     # Run agentic analysis
                     logger.info(f"  Analyzing {symbol}...")
-                    analysis = self.agentic_manager.analyze_stock(
-                        ticker=symbol,
-                        price_data=historical_data
-                    )
+                    try:
+                        analysis = self.coordinator.analyze_stock(
+                            ticker=symbol,
+                            price_data=historical_data
+                        )
+                    except Exception as agent_error:
+                        logger.error(f"  Agent error for {symbol}: {str(agent_error)}")
+                        import traceback
+                        traceback.print_exc()
+                        analysis = {'error': str(agent_error)}
                     
                     # Extract signals
                     if 'error' not in analysis:
-                        confidence = analysis.get('confidence', 0)
-                        recommendation = analysis.get('recommendation', 'HOLD')
+                        aggregated = analysis.get('aggregated_analysis', {})
+                        confidence = aggregated.get('overall_confidence', 0)
+                        recommendation = aggregated.get('recommendation', 'HOLD')
                         
                         if confidence >= confidence_threshold:
                             signals.append({
                                 'symbol': symbol,
                                 'recommendation': recommendation,
                                 'confidence': confidence,
-                                'composite_score': analysis.get('composite_score', 0)
+                                'composite_score': aggregated.get('overall_score', 0)
                             })
                             
                             # Track prediction for accuracy calculation
@@ -173,8 +180,8 @@ class HistoricalBacktest:
                             except:
                                 pass
                             
-                            if future_price:
-                                actual_return = (future_price - current_price) / current_price
+                            if future_price is not None:
+                                actual_return = float((future_price - current_price) / current_price)
                                 predicted_direction = recommendation in ['BUY', 'STRONG_BUY']
                                 actual_direction = actual_return > 0
                                 
@@ -191,6 +198,8 @@ class HistoricalBacktest:
                     
                 except Exception as e:
                     logger.warning(f"  Error analyzing {symbol}: {e}")
+                    import traceback
+                    traceback.print_exc()
             
             # Execute trades based on signals
             if signals:

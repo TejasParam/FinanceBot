@@ -1,0 +1,35 @@
+{
+  "test_periods": [
+    {
+      "year": 2021,
+      "description": "Bull market recovery, meme stock mania"
+    },
+    {
+      "year": 2022,
+      "description": "Bear market, high inflation, rate hikes"
+    },
+    {
+      "year": 2023,
+      "description": "AI boom, volatile recovery"
+    }
+  ],
+  "stocks_to_test": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "NVDA",
+    "META",
+    "TSLA",
+    "JPM",
+    "V",
+    "JNJ",
+    "WMT",
+    "PG",
+    "UNH",
+    "HD",
+    "MA"
+  ],
+  "confidence_threshold": 0.7,
+  "initial_capital": 100000
+}

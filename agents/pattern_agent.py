@@ -240,9 +240,12 @@ class PatternRecognitionAgent(BaseAgent):
             return {'pattern': 'death_cross', 'score': -0.5}
         
         # Price above/below all MAs
-        if current_price > sma20.iloc[-1] > sma50.iloc[-1]:
+        sma20_val = float(sma20.iloc[-1])
+        sma50_val = float(sma50.iloc[-1])
+        
+        if current_price > sma20_val and sma20_val > sma50_val:
             return {'pattern': 'above_all_mas', 'score': 0.3}
-        elif current_price < sma20.iloc[-1] < sma50.iloc[-1]:
+        elif current_price < sma20_val and sma20_val < sma50_val:
             return {'pattern': 'below_all_mas', 'score': -0.3}
         
         return {'pattern': 'none', 'score': 0}
@@ -313,15 +316,19 @@ class PatternRecognitionAgent(BaseAgent):
         price_change = (close.iloc[-1] / close.iloc[-5] - 1) if len(close) > 5 else 0
         
         # Volume breakout
-        if recent_volume > avg_volume.iloc[-1] * 1.5:
+        avg_volume_val = float(avg_volume.iloc[-1])
+        current_close = float(close.iloc[-1])
+        ma20_val = float(close.rolling(20).mean().iloc[-1])
+        
+        if recent_volume > avg_volume_val * 1.5:
             if price_change > 0.02:
                 return {'pattern': 'volume_breakout_up', 'score': 0.4}
             elif price_change < -0.02:
                 return {'pattern': 'volume_breakout_down', 'score': -0.4}
         
         # Low volume pullback
-        elif recent_volume < avg_volume.iloc[-1] * 0.7:
-            if price_change < -0.01 and close.iloc[-1] > close.rolling(20).mean().iloc[-1]:
+        elif recent_volume < avg_volume_val * 0.7:
+            if price_change < -0.01 and current_close > ma20_val:
                 return {'pattern': 'low_volume_pullback', 'score': 0.2}
         
         return {'pattern': 'none', 'score': 0}
@@ -380,9 +387,10 @@ class PatternRecognitionAgent(BaseAgent):
         
         # Check for breakout
         if range_size < 0.05:  # Tight consolidation
-            if current_price > recent_high and current_volume > avg_volume * 1.2:
+            avg_volume_val = float(avg_volume) if not pd.isna(avg_volume) else 0
+            if current_price > recent_high and current_volume > avg_volume_val * 1.2:
                 return {'detected': True, 'type': 'bullish'}
-            elif current_price < recent_low and current_volume > avg_volume * 1.2:
+            elif current_price < recent_low and current_volume > avg_volume_val * 1.2:
                 return {'detected': True, 'type': 'bearish'}
         
         return {'detected': False}

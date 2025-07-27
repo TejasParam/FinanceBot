@@ -1,0 +1,52 @@
+{
+  "timestamp": "20250726_182018",
+  "results": {
+    "AAPL": {
+      "score": 0.0,
+      "confidence": 0.0,
+      "recommendation": "HOLD",
+      "risk_score": 0,
+      "signals": {}
+    },
+    "MSFT": {
+      "score": 0.0,
+      "confidence": 0.0,
+      "recommendation": "HOLD",
+      "risk_score": 0,
+      "signals": {}
+    },
+    "NVDA": {
+      "score": 0.0,
+      "confidence": 0.0,
+      "recommendation": "HOLD",
+      "risk_score": 0,
+      "signals": {}
+    },
+    "JPM": {
+      "score": 0.0,
+      "confidence": 0.0,
+      "recommendation": "HOLD",
+      "risk_score": 0,
+      "signals": {}
+    },
+    "TSLA": {
+      "score": 0.0,
+      "confidence": 0.0,
+      "recommendation": "HOLD",
+      "risk_score": 0,
+      "signals": {}
+    }
+  },
+  "summary": {
+    "buy_signals": [],
+    "sell_signals": [],
+    "hold_signals": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "JPM",
+      "TSLA"
+    ],
+    "total_stocks": 5
+  }
+}

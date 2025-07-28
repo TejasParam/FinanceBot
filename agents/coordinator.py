@@ -25,6 +25,8 @@ from .market_timing_agent import MarketTimingAgent
 from .volatility_agent import VolatilityAnalysisAgent
 from .pattern_agent import PatternRecognitionAgent
 from .intermarket_agent import IntermarketAnalysisAgent
+from .hft_engine import HFTEngine
+from .stat_arb_agent import StatisticalArbitrageAgent
 
 class AgentCoordinator:
     """
@@ -49,6 +51,8 @@ class AgentCoordinator:
             'VolatilityAnalysis': VolatilityAnalysisAgent(),
             'PatternRecognition': PatternRecognitionAgent(),
             'IntermarketAnalysis': IntermarketAnalysisAgent(),
+            'HFTEngine': HFTEngine(),  # Renaissance Medallion-style HFT
+            'StatisticalArbitrage': StatisticalArbitrageAgent(),  # Pairs & basket trading
         }
         
         # Optional agents
@@ -71,6 +75,13 @@ class AgentCoordinator:
         self.market_filter = MarketFilter()
         self.enable_ml = enable_ml
         self.enable_llm = enable_llm
+        
+        # Quantum-inspired algorithms (Renaissance-style)
+        self.quantum_annealing_enabled = True
+        self.superposition_states = {}
+        self.entanglement_matrix = np.eye(len(self.agents))
+        self.quantum_temperature = 1.0
+        self.measurement_basis = 'computational'  # or 'hadamard' for superposition
         
     def analyze_stock(self, ticker: str, **kwargs) -> Dict[str, Any]:
         """
@@ -173,6 +184,8 @@ class AgentCoordinator:
         except Exception as e:
             self.execution_stats['failed_analyses'] += 1
             self.logger.error(f"Multi-agent analysis failed for {ticker}: {e}")
+            import traceback
+            traceback.print_exc()
             
             return {
                 'ticker': ticker,
@@ -347,6 +360,16 @@ class AgentCoordinator:
             overall_score, overall_confidence, valid_results, consensus_analysis
         )
         
+        # Apply quantum-inspired optimization if enabled
+        quantum_result = {}
+        if self.quantum_annealing_enabled and len(valid_results) > 3:
+            quantum_result = self._quantum_aggregate_results(valid_results)
+            
+            # Blend quantum and classical results
+            quantum_weight = 0.3  # 30% quantum, 70% classical
+            overall_score = (1 - quantum_weight) * overall_score + quantum_weight * quantum_result['quantum_score']
+            overall_confidence = (1 - quantum_weight) * overall_confidence + quantum_weight * quantum_result['quantum_confidence']
+        
         return {
             'overall_score': overall_score,
             'overall_confidence': overall_confidence,
@@ -357,7 +380,8 @@ class AgentCoordinator:
                                for name, result in valid_results.items()},
             'component_confidences': {name: result.get('confidence', 0.0) 
                                     for name, result in valid_results.items()},
-            'agents_contributing': len(valid_results)
+            'agents_contributing': len(valid_results),
+            'quantum_optimization': quantum_result
         }
     
     def _score_to_recommendation(self, score: float, confidence: float, market_context: Dict = None) -> str:
@@ -603,18 +627,25 @@ class AgentCoordinator:
         # If we have good performance data, use it
         if dynamic_weights and sum(dynamic_weights.values()) > 0:
             base_weights = dynamic_weights
+            # Ensure new agents are included
+            if 'HFTEngine' not in base_weights:
+                base_weights['HFTEngine'] = 0.13
+            if 'StatisticalArbitrage' not in base_weights:
+                base_weights['StatisticalArbitrage'] = 0.12
         else:
             # Fallback to static weights if no performance data
             base_weights = {
-                'TechnicalAnalysis': 0.18,
-                'MarketTiming': 0.18,
-                'PatternRecognition': 0.12,
-                'IntermarketAnalysis': 0.12,
-                'FundamentalAnalysis': 0.12,
-                'MLPrediction': 0.10,
-                'VolatilityAnalysis': 0.08,
+                'HFTEngine': 0.13,  # High weight for Renaissance-style micro-predictions
+                'StatisticalArbitrage': 0.12,  # Market-neutral strategies
+                'TechnicalAnalysis': 0.13,
+                'MarketTiming': 0.13,
+                'PatternRecognition': 0.09,
+                'IntermarketAnalysis': 0.09,
+                'FundamentalAnalysis': 0.09,
+                'MLPrediction': 0.07,
+                'VolatilityAnalysis': 0.06,
                 'SentimentAnalysis': 0.05,
-                'RegimeDetection': 0.04,
+                'RegimeDetection': 0.03,
                 'LLMExplanation': 0.01
             }
         
@@ -627,38 +658,81 @@ class AgentCoordinator:
         # Trend-based adjustments
         if trend in ['strong_up', 'strong_down']:
             # In strong trends, technical and timing are more reliable
-            base_weights['TechnicalAnalysis'] *= 1.4
-            base_weights['MarketTiming'] *= 1.4
-            base_weights['PatternRecognition'] *= 1.3
-            base_weights['MLPrediction'] *= 1.2
-            base_weights['FundamentalAnalysis'] *= 0.7  # Less important in momentum markets
-            base_weights['SentimentAnalysis'] *= 0.8
+            if 'TechnicalAnalysis' in base_weights:
+                base_weights['TechnicalAnalysis'] *= 1.4
+            if 'MarketTiming' in base_weights:
+                base_weights['MarketTiming'] *= 1.4
+            if 'PatternRecognition' in base_weights:
+                base_weights['PatternRecognition'] *= 1.3
+            if 'MLPrediction' in base_weights:
+                base_weights['MLPrediction'] *= 1.2
+            if 'HFTEngine' in base_weights:
+                base_weights['HFTEngine'] *= 1.5  # HFT excels in trending markets
+            if 'StatisticalArbitrage' in base_weights:
+                base_weights['StatisticalArbitrage'] *= 0.7  # Stat arb less effective in strong trends
+            if 'FundamentalAnalysis' in base_weights:
+                base_weights['FundamentalAnalysis'] *= 0.7  # Less important in momentum markets
+            if 'SentimentAnalysis' in base_weights:
+                base_weights['SentimentAnalysis'] *= 0.8
         elif trend == 'sideways':
             # In sideways markets, patterns and fundamentals matter more
-            base_weights['PatternRecognition'] *= 1.3
-            base_weights['FundamentalAnalysis'] *= 1.3
-            base_weights['VolatilityAnalysis'] *= 1.2
-            base_weights['TechnicalAnalysis'] *= 0.9
-            base_weights['MarketTiming'] *= 0.8
+            if 'PatternRecognition' in base_weights:
+                base_weights['PatternRecognition'] *= 1.3
+            if 'FundamentalAnalysis' in base_weights:
+                base_weights['FundamentalAnalysis'] *= 1.3
+            if 'VolatilityAnalysis' in base_weights:
+                base_weights['VolatilityAnalysis'] *= 1.2
+            if 'HFTEngine' in base_weights:
+                base_weights['HFTEngine'] *= 2.0  # HFT dominates in range-bound markets (mean reversion)
+            if 'StatisticalArbitrage' in base_weights:
+                base_weights['StatisticalArbitrage'] *= 2.5  # Stat arb thrives in sideways markets
+            if 'TechnicalAnalysis' in base_weights:
+                base_weights['TechnicalAnalysis'] *= 0.9
+            if 'MarketTiming' in base_weights:
+                base_weights['MarketTiming'] *= 0.8
         
         # Volatility-based adjustments
         if volatility > 0.03:  # High volatility
-            base_weights['VolatilityAnalysis'] *= 1.6
-            base_weights['RegimeDetection'] *= 1.5
-            base_weights['SentimentAnalysis'] *= 1.3
-            base_weights['TechnicalAnalysis'] *= 0.8
-            base_weights['MLPrediction'] *= 0.9
+            if 'VolatilityAnalysis' in base_weights:
+                base_weights['VolatilityAnalysis'] *= 1.6
+            if 'RegimeDetection' in base_weights:
+                base_weights['RegimeDetection'] *= 1.5
+            if 'SentimentAnalysis' in base_weights:
+                base_weights['SentimentAnalysis'] *= 1.3
+            if 'HFTEngine' in base_weights:
+                base_weights['HFTEngine'] *= 0.7  # HFT less effective in extreme volatility
+            if 'StatisticalArbitrage' in base_weights:
+                base_weights['StatisticalArbitrage'] *= 0.8  # Stat arb also affected by high vol
+            if 'TechnicalAnalysis' in base_weights:
+                base_weights['TechnicalAnalysis'] *= 0.8
+            if 'MLPrediction' in base_weights:
+                base_weights['MLPrediction'] *= 0.9
         elif volatility < 0.01:  # Low volatility
-            base_weights['TechnicalAnalysis'] *= 1.3
-            base_weights['MarketTiming'] *= 1.3
-            base_weights['PatternRecognition'] *= 1.2
-            base_weights['VolatilityAnalysis'] *= 0.7
+            if 'TechnicalAnalysis' in base_weights:
+                base_weights['TechnicalAnalysis'] *= 1.3
+            if 'MarketTiming' in base_weights:
+                base_weights['MarketTiming'] *= 1.3
+            if 'PatternRecognition' in base_weights:
+                base_weights['PatternRecognition'] *= 1.2
+            if 'HFTEngine' in base_weights:
+                base_weights['HFTEngine'] *= 1.8  # HFT thrives in low volatility
+            if 'StatisticalArbitrage' in base_weights:
+                base_weights['StatisticalArbitrage'] *= 1.6  # Stat arb also thrives in low vol
+            if 'VolatilityAnalysis' in base_weights:
+                base_weights['VolatilityAnalysis'] *= 0.7
         
         # Volume surge adjustment
         if volume_surge:
-            base_weights['TechnicalAnalysis'] *= 1.2
-            base_weights['SentimentAnalysis'] *= 1.3
-            base_weights['MLPrediction'] *= 1.1
+            if 'TechnicalAnalysis' in base_weights:
+                base_weights['TechnicalAnalysis'] *= 1.2
+            if 'SentimentAnalysis' in base_weights:
+                base_weights['SentimentAnalysis'] *= 1.3
+            if 'MLPrediction' in base_weights:
+                base_weights['MLPrediction'] *= 1.1
+            if 'HFTEngine' in base_weights:
+                base_weights['HFTEngine'] *= 1.4  # HFT benefits from increased liquidity
+            if 'StatisticalArbitrage' in base_weights:
+                base_weights['StatisticalArbitrage'] *= 1.3  # Stat arb benefits from liquidity for execution
         
         # Agent confidence and performance adjustments
         for agent_name in valid_results:
@@ -1122,3 +1196,196 @@ class AgentCoordinator:
         impact = impact_coefficient * np.sqrt(position_size)
         
         return round(impact, 1)
+    
+    def _quantum_aggregate_results(self, agent_results: Dict[str, Any]) -> Dict[str, float]:
+        """
+        Quantum-inspired aggregation using superposition and entanglement
+        
+        Based on quantum annealing optimization used by D-Wave systems
+        """
+        # Create quantum state vector for each agent result
+        quantum_states = {}
+        
+        for agent_name, result in agent_results.items():
+            if 'error' in result:
+                continue
+            
+            score = result.get('score', 0.0)
+            confidence = result.get('confidence', 0.5)
+            
+            # Create superposition state
+            # |ψ⟩ = α|0⟩ + β|1⟩ where |α|² + |β|² = 1
+            alpha = np.sqrt((1 + score) / 2)  # Probability amplitude for positive
+            beta = np.sqrt((1 - score) / 2)   # Probability amplitude for negative
+            
+            # Apply confidence as measurement uncertainty
+            alpha *= confidence
+            beta *= confidence
+            
+            # Normalize
+            norm = np.sqrt(alpha**2 + beta**2)
+            if norm > 0:
+                alpha /= norm
+                beta /= norm
+            
+            quantum_states[agent_name] = {'alpha': alpha, 'beta': beta, 'phase': np.random.random() * 2 * np.pi}
+        
+        # Apply entanglement based on agent correlations
+        entangled_states = self._apply_quantum_entanglement(quantum_states)
+        
+        # Quantum annealing to find optimal combination
+        optimal_weights = self._quantum_annealing_optimization(entangled_states)
+        
+        # Collapse to classical result
+        final_score = 0.0
+        total_weight = 0.0
+        
+        for agent_name, weight in optimal_weights.items():
+            if agent_name in agent_results and 'error' not in agent_results[agent_name]:
+                score = agent_results[agent_name].get('score', 0.0)
+                final_score += score * weight
+                total_weight += weight
+        
+        if total_weight > 0:
+            final_score /= total_weight
+        
+        # Calculate quantum confidence (measurement fidelity)
+        quantum_confidence = self._calculate_quantum_fidelity(quantum_states, optimal_weights)
+        
+        return {
+            'quantum_score': final_score,
+            'quantum_confidence': quantum_confidence,
+            'measurement_basis': self.measurement_basis,
+            'entanglement_strength': np.mean(self.entanglement_matrix)
+        }
+    
+    def _apply_quantum_entanglement(self, quantum_states: Dict[str, Dict[str, float]]) -> Dict[str, Dict[str, float]]:
+        """Apply quantum entanglement between correlated agents"""
+        
+        # Update entanglement matrix based on agent performance correlation
+        agent_names = list(quantum_states.keys())
+        n_agents = len(agent_names)
+        
+        if n_agents < 2:
+            return quantum_states
+        
+        # Simplified entanglement: correlate similar agents
+        entangled_states = quantum_states.copy()
+        
+        for i, agent1 in enumerate(agent_names):
+            for j, agent2 in enumerate(agent_names):
+                if i >= j:
+                    continue
+                
+                # Calculate entanglement strength based on similarity
+                state1 = quantum_states[agent1]
+                state2 = quantum_states[agent2]
+                
+                similarity = abs(state1['alpha'] * state2['alpha'] + state1['beta'] * state2['beta'])
+                
+                if similarity > 0.7:  # Strong correlation
+                    # Apply Bell state entanglement
+                    # |Φ+⟩ = (|00⟩ + |11⟩)/√2
+                    avg_alpha = (state1['alpha'] + state2['alpha']) / 2
+                    avg_beta = (state1['beta'] + state2['beta']) / 2
+                    
+                    # Update states to be entangled
+                    entangled_states[agent1]['alpha'] = avg_alpha
+                    entangled_states[agent1]['beta'] = avg_beta
+                    entangled_states[agent2]['alpha'] = avg_alpha
+                    entangled_states[agent2]['beta'] = avg_beta
+                    
+                    # Update entanglement matrix
+                    self.entanglement_matrix[i, j] = similarity
+                    self.entanglement_matrix[j, i] = similarity
+        
+        return entangled_states
+    
+    def _quantum_annealing_optimization(self, quantum_states: Dict[str, Dict[str, float]]) -> Dict[str, float]:
+        """
+        Quantum annealing to find optimal weight combination
+        
+        Inspired by D-Wave quantum annealers used by some funds
+        """
+        n_iterations = 1000
+        current_weights = {agent: 1.0 / len(quantum_states) for agent in quantum_states}
+        best_weights = current_weights.copy()
+        best_energy = float('inf')
+        
+        for iteration in range(n_iterations):
+            # Calculate current energy (negative expected return)
+            energy = self._calculate_quantum_energy(current_weights, quantum_states)
+            
+            if energy < best_energy:
+                best_energy = energy
+                best_weights = current_weights.copy()
+            
+            # Quantum tunneling: randomly perturb weights
+            new_weights = current_weights.copy()
+            agent_to_modify = np.random.choice(list(quantum_states.keys()))
+            
+            # Quantum fluctuation
+            fluctuation = np.random.normal(0, self.quantum_temperature / (iteration + 1))
+            new_weights[agent_to_modify] += fluctuation
+            
+            # Ensure weights are positive and normalized
+            new_weights = {k: max(0.01, v) for k, v in new_weights.items()}
+            total = sum(new_weights.values())
+            new_weights = {k: v / total for k, v in new_weights.items()}
+            
+            # Metropolis acceptance criterion
+            new_energy = self._calculate_quantum_energy(new_weights, quantum_states)
+            delta_energy = new_energy - energy
+            
+            if delta_energy < 0 or np.random.random() < np.exp(-delta_energy / self.quantum_temperature):
+                current_weights = new_weights
+            
+            # Reduce temperature (simulated annealing)
+            self.quantum_temperature *= 0.999
+        
+        return best_weights
+    
+    def _calculate_quantum_energy(self, weights: Dict[str, float], quantum_states: Dict[str, Dict[str, float]]) -> float:
+        """Calculate energy function for quantum optimization"""
+        
+        # Energy = -Expected Return + Penalty for low confidence
+        expected_return = 0.0
+        confidence_penalty = 0.0
+        
+        for agent, weight in weights.items():
+            if agent in quantum_states:
+                state = quantum_states[agent]
+                
+                # Expected return from quantum state
+                prob_positive = state['alpha']**2
+                prob_negative = state['beta']**2
+                expected = prob_positive - prob_negative
+                
+                expected_return += weight * expected
+                
+                # Penalty for uncertain states (high superposition)
+                uncertainty = 2 * state['alpha'] * state['beta']
+                confidence_penalty += weight * uncertainty
+        
+        # Energy function (minimize this)
+        energy = -expected_return + 0.5 * confidence_penalty
+        
+        return energy
+    
+    def _calculate_quantum_fidelity(self, quantum_states: Dict[str, Dict[str, float]], 
+                                   weights: Dict[str, float]) -> float:
+        """Calculate quantum measurement fidelity (confidence)"""
+        
+        total_fidelity = 0.0
+        total_weight = 0.0
+        
+        for agent, weight in weights.items():
+            if agent in quantum_states:
+                state = quantum_states[agent]
+                
+                # Fidelity based on how close to pure state (not superposition)
+                purity = max(state['alpha']**2, state['beta']**2)
+                total_fidelity += weight * purity
+                total_weight += weight
+        
+        return total_fidelity / total_weight if total_weight > 0 else 0.5

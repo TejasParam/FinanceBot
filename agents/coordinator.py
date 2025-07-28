@@ -27,6 +27,7 @@ from .pattern_agent import PatternRecognitionAgent
 from .intermarket_agent import IntermarketAnalysisAgent
 from .hft_engine import HFTEngine
 from .stat_arb_agent import StatisticalArbitrageAgent
+from .risk_management_agent import RiskManagementAgent
 
 class AgentCoordinator:
     """
@@ -53,6 +54,7 @@ class AgentCoordinator:
             'IntermarketAnalysis': IntermarketAnalysisAgent(),
             'HFTEngine': HFTEngine(),  # Renaissance Medallion-style HFT
             'StatisticalArbitrage': StatisticalArbitrageAgent(),  # Pairs & basket trading
+            'RiskManagement': RiskManagementAgent(),  # Advanced risk management with EVT
         }
         
         # Optional agents
@@ -632,21 +634,24 @@ class AgentCoordinator:
                 base_weights['HFTEngine'] = 0.13
             if 'StatisticalArbitrage' not in base_weights:
                 base_weights['StatisticalArbitrage'] = 0.12
+            if 'RiskManagement' not in base_weights:
+                base_weights['RiskManagement'] = 0.15
         else:
             # Fallback to static weights if no performance data
             base_weights = {
-                'HFTEngine': 0.13,  # High weight for Renaissance-style micro-predictions
-                'StatisticalArbitrage': 0.12,  # Market-neutral strategies
-                'TechnicalAnalysis': 0.13,
-                'MarketTiming': 0.13,
-                'PatternRecognition': 0.09,
-                'IntermarketAnalysis': 0.09,
-                'FundamentalAnalysis': 0.09,
-                'MLPrediction': 0.07,
-                'VolatilityAnalysis': 0.06,
-                'SentimentAnalysis': 0.05,
-                'RegimeDetection': 0.03,
-                'LLMExplanation': 0.01
+                'RiskManagement': 0.15,  # Highest weight for risk-adjusted decisions
+                'HFTEngine': 0.12,  # High weight for Renaissance-style micro-predictions
+                'StatisticalArbitrage': 0.11,  # Market-neutral strategies
+                'TechnicalAnalysis': 0.11,
+                'MarketTiming': 0.10,
+                'PatternRecognition': 0.08,
+                'IntermarketAnalysis': 0.08,
+                'FundamentalAnalysis': 0.08,
+                'MLPrediction': 0.06,
+                'VolatilityAnalysis': 0.05,
+                'SentimentAnalysis': 0.04,
+                'RegimeDetection': 0.02,
+                'LLMExplanation': 0.00
             }
         
         # Market condition adjustments

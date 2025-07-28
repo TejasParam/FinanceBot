@@ -6,11 +6,15 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 from .base_agent import BaseAgent
 from data_collection import DataCollectionAgent
 import pandas as pd
 import numpy as np
+from scipy import signal, stats
+from scipy.fft import fft, fftfreq
+import warnings
+warnings.filterwarnings('ignore')
 
 class TechnicalAnalysisAgent(BaseAgent):
     """
@@ -21,6 +25,12 @@ class TechnicalAnalysisAgent(BaseAgent):
     def __init__(self):
         super().__init__("TechnicalAnalysis")
         self.data_collector = DataCollectionAgent()
+        
+        # Advanced signal processing parameters
+        self.wavelet_scales = np.arange(1, 128)  # For wavelet analysis
+        self.fourier_components = 20  # Top frequency components to analyze
+        self.kalman_process_noise = 0.01
+        self.kalman_observation_noise = 0.1
         
     def analyze(self, ticker: str, period: str = "6mo", **kwargs) -> Dict[str, Any]:
         """
@@ -85,11 +95,54 @@ class TechnicalAnalysisAgent(BaseAgent):
             }
     
     def _calculate_technical_score(self, indicators: Dict[str, Any]) -> float:
-        """Calculate overall technical score from -1 (bearish) to 1 (bullish) - Enhanced for 80% accuracy"""
+        """Calculate overall technical score from -1 (bearish) to 1 (bullish) - Enhanced with signal processing"""
         score = 0.0
         weight_sum = 0.0
         signals_aligned = 0
         total_signals = 0
+        
+        # Add advanced signal processing components
+        # Dominant cycle analysis
+        cycle_period = indicators.get('dominant_cycle', 20)
+        cycle_strength = indicators.get('cycle_strength', 0)
+        if cycle_strength > 0.7:  # Strong cycle detected
+            # Check where we are in the cycle
+            current_phase = self._estimate_cycle_phase(indicators, cycle_period)
+            if current_phase < 0.25:  # Bottom of cycle
+                score += 0.8 * 0.15
+                signals_aligned += 0.8
+            elif current_phase > 0.75:  # Top of cycle
+                score -= 0.8 * 0.15
+                signals_aligned -= 0.8
+            weight_sum += 0.15
+            total_signals += 1
+        
+        # Kalman filter trend
+        kalman_velocity = indicators.get('kalman_velocity', 0)
+        if abs(kalman_velocity) > 0.001:  # Significant trend
+            score += np.sign(kalman_velocity) * min(1, abs(kalman_velocity) * 100) * 0.2
+            signals_aligned += np.sign(kalman_velocity) * 0.7
+            weight_sum += 0.2
+            total_signals += 1
+        
+        # Wavelet momentum
+        wavelet_momentum = indicators.get('wavelet_momentum', 0)
+        if abs(wavelet_momentum) > 0.3:
+            score += wavelet_momentum * 0.15
+            signals_aligned += wavelet_momentum * 0.6
+            weight_sum += 0.15
+            total_signals += 1
+        
+        # Market efficiency (fractal dimension)
+        market_efficiency = indicators.get('market_efficiency', 0.5)
+        if market_efficiency < 0.4:  # Trending market
+            # Boost trend-following signals
+            trend_boost = 1.3
+        elif market_efficiency > 0.6:  # Mean-reverting market
+            # Boost mean-reversion signals
+            trend_boost = 0.7
+        else:
+            trend_boost = 1.0
         
         # Enhanced RSI scoring with better thresholds
         rsi = indicators.get('rsi', 50)
@@ -154,8 +207,18 @@ class TechnicalAnalysisAgent(BaseAgent):
         weight_sum += 0.15
         total_signals += 1
         
+        # Apply market efficiency adjustment
+        score *= trend_boost
+        
         # Enhanced: Check signal alignment for higher accuracy
         alignment_ratio = abs(signals_aligned) / total_signals if total_signals > 0 else 0
+        
+        # Advanced: Consider noise ratio
+        noise_ratio = indicators.get('noise_ratio', 0.5)
+        if noise_ratio > 0.7:  # High noise environment
+            score *= 0.6  # Reduce confidence in noisy markets
+        elif noise_ratio < 0.3:  # Clear signals
+            score *= 1.2  # Boost confidence
         
         # Only generate strong scores when signals align
         if alignment_ratio < 0.6:  # Signals not well aligned
@@ -163,10 +226,15 @@ class TechnicalAnalysisAgent(BaseAgent):
         elif alignment_ratio > 0.8:  # Strong alignment
             score *= 1.2  # Boost score
         
+        # Microstructure pattern adjustment
+        microstructure_score = indicators.get('microstructure_score', 0)
+        if abs(microstructure_score) > 0.5:
+            score += microstructure_score * 0.1
+        
         final_score = score / weight_sum if weight_sum > 0 else 0.0
         
-        # Cap scores based on alignment
-        if alignment_ratio < 0.5:
+        # Cap scores based on alignment and noise
+        if alignment_ratio < 0.5 or noise_ratio > 0.8:
             final_score = max(-0.5, min(0.5, final_score))
         
         return max(-1.0, min(1.0, final_score))
@@ -204,8 +272,17 @@ class TechnicalAnalysisAgent(BaseAgent):
             return 'neutral'
     
     def _calculate_confidence(self, indicators: Dict[str, Any]) -> float:
-        """Calculate confidence level based on signal alignment"""
+        """Calculate confidence level based on signal alignment and quality"""
         signals = []
+        
+        # Advanced signal quality metrics
+        noise_ratio = indicators.get('noise_ratio', 0.5)
+        cycle_strength = indicators.get('cycle_strength', 0)
+        trend_strength = indicators.get('trend_strength', 0)
+        
+        # Base confidence on signal quality
+        signal_quality = (1 - noise_ratio) * 0.4 + cycle_strength * 0.3 + min(1, trend_strength) * 0.3
+        signals.append(signal_quality)
         
         # Check signal alignment
         rsi = indicators.get('rsi', 50)
@@ -239,7 +316,22 @@ class TechnicalAnalysisAgent(BaseAgent):
         else:
             signals.append(0.4)
         
-        return sum(signals) / len(signals) if signals else 0.5
+        # Advanced indicators confidence
+        if indicators.get('microstructure_score', 0) != 0:
+            signals.append(0.7)
+        
+        if indicators.get('kalman_velocity', 0) != 0:
+            signals.append(abs(indicators['kalman_velocity']) * 500)
+        
+        base_confidence = sum(signals) / len(signals) if signals else 0.5
+        
+        # Adjust for market efficiency
+        market_efficiency = indicators.get('market_efficiency', 0.5)
+        if market_efficiency < 0.3 or market_efficiency > 0.7:
+            # More confident in trending or strongly mean-reverting markets
+            base_confidence *= 1.2
+        
+        return min(0.95, base_confidence)
     
     def _generate_reasoning(self, indicators: Dict[str, Any], trend: str, 
                           momentum: str, score: float) -> str:
@@ -276,6 +368,31 @@ class TechnicalAnalysisAgent(BaseAgent):
             reasoning_parts.append("Price near lower Bollinger Band suggests potential bounce.")
         elif bb_position > 0.8:
             reasoning_parts.append("Price near upper Bollinger Band suggests potential pullback.")
+        
+        # Advanced signal processing insights
+        if indicators.get('dominant_cycle', 0) > 0:
+            reasoning_parts.append(f"Dominant market cycle: {indicators['dominant_cycle']} periods.")
+        
+        noise_ratio = indicators.get('noise_ratio', 0.5)
+        if noise_ratio > 0.7:
+            reasoning_parts.append("High market noise detected - signals less reliable.")
+        elif noise_ratio < 0.3:
+            reasoning_parts.append("Clear market signals with low noise.")
+        
+        if indicators.get('microstructure_score', 0) > 0.5:
+            patterns = indicators.get('detected_patterns', [])
+            if patterns:
+                reasoning_parts.append(f"Bullish microstructure: {', '.join(patterns[:2])}.")
+        elif indicators.get('microstructure_score', 0) < -0.5:
+            patterns = indicators.get('detected_patterns', [])
+            if patterns:
+                reasoning_parts.append(f"Bearish microstructure: {', '.join(patterns[:2])}.")
+        
+        market_efficiency = indicators.get('market_efficiency', 0.5)
+        if market_efficiency < 0.4:
+            reasoning_parts.append("Market showing strong trending behavior.")
+        elif market_efficiency > 0.6:
+            reasoning_parts.append("Market showing mean-reverting behavior.")
         
         return " ".join(reasoning_parts)
     
@@ -339,6 +456,18 @@ class TechnicalAnalysisAgent(BaseAgent):
         cumulative_delta = delta.cumsum()
         delta_divergence = (cumulative_delta.iloc[-1] - cumulative_delta.iloc[-20]) / 20
         
+        # 7. Advanced Signal Processing
+        signal_processing_results = self._advanced_signal_processing(close, volume)
+        
+        # 8. Microstructure patterns
+        microstructure = self._detect_microstructure_patterns(close, high, low, volume)
+        
+        # 9. Entropy and Information Theory metrics
+        entropy_metrics = self._calculate_entropy_metrics(close)
+        
+        # 10. Fractal Dimension
+        fractal_dim = self._calculate_fractal_dimension(close)
+        
         # MACD signal determination
         if macd > macd_signal and macd_histogram > 0:
             macd_signal_type = 'bullish'
@@ -383,7 +512,25 @@ class TechnicalAnalysisAgent(BaseAgent):
             'ichimoku_signal': 'bullish' if current_price > float(kijun_sen.iloc[-1]) else 'bearish',
             'delta_divergence': delta_divergence,
             'atr': atr,
-            'atr_ratio': atr / current_price  # Normalized ATR
+            'atr_ratio': atr / current_price,  # Normalized ATR
+            # Advanced signal processing results
+            'dominant_cycle': signal_processing_results['dominant_cycle'],
+            'cycle_strength': signal_processing_results['cycle_strength'],
+            'trend_strength': signal_processing_results['trend_strength'],
+            'noise_ratio': signal_processing_results['noise_ratio'],
+            'kalman_trend': signal_processing_results['kalman_trend'],
+            'kalman_velocity': signal_processing_results['kalman_velocity'],
+            'wavelet_momentum': signal_processing_results['wavelet_momentum'],
+            # Microstructure
+            'microstructure_score': microstructure['score'],
+            'detected_patterns': microstructure['patterns'],
+            # Entropy metrics
+            'price_entropy': entropy_metrics['price_entropy'],
+            'volume_entropy': entropy_metrics['volume_entropy'],
+            'information_ratio': entropy_metrics['information_ratio'],
+            # Fractal analysis
+            'fractal_dimension': fractal_dim,
+            'market_efficiency': 2 - fractal_dim  # Closer to 1 = more efficient
         }
     
     def _calculate_rsi(self, prices: pd.Series, period: int = 14) -> float:
@@ -422,3 +569,273 @@ class TechnicalAnalysisAgent(BaseAgent):
         true_range = np.max(ranges, axis=1)
         atr = true_range.rolling(period).mean()
         return float(atr.iloc[-1])
+    
+    def _advanced_signal_processing(self, prices: pd.Series, volume: pd.Series) -> Dict[str, Any]:
+        """Apply advanced signal processing techniques"""
+        results = {}
+        
+        # 1. Fourier Transform for cycle detection
+        try:
+            # Detrend the data
+            detrended = signal.detrend(prices.values)
+            
+            # Apply FFT
+            fft_values = fft(detrended)
+            frequencies = fftfreq(len(detrended))
+            
+            # Find dominant frequency (excluding DC component)
+            positive_freq_idx = frequencies > 0
+            magnitudes = np.abs(fft_values[positive_freq_idx])
+            freqs_positive = frequencies[positive_freq_idx]
+            
+            dominant_freq_idx = np.argmax(magnitudes)
+            dominant_frequency = freqs_positive[dominant_freq_idx]
+            dominant_period = 1 / dominant_frequency if dominant_frequency > 0 else len(prices)
+            
+            # Calculate cycle strength
+            total_power = np.sum(magnitudes ** 2)
+            dominant_power = magnitudes[dominant_freq_idx] ** 2
+            cycle_strength = dominant_power / total_power if total_power > 0 else 0
+            
+            results['dominant_cycle'] = int(dominant_period)
+            results['cycle_strength'] = float(cycle_strength)
+            
+        except:
+            results['dominant_cycle'] = 20
+            results['cycle_strength'] = 0.0
+        
+        # 2. Kalman Filter for trend extraction
+        try:
+            kalman_trend, kalman_velocity = self._apply_kalman_filter(prices.values)
+            results['kalman_trend'] = kalman_trend[-1]
+            results['kalman_velocity'] = kalman_velocity[-1]
+            results['trend_strength'] = abs(kalman_velocity[-1]) * 1000
+        except:
+            results['kalman_trend'] = float(prices.iloc[-1])
+            results['kalman_velocity'] = 0.0
+            results['trend_strength'] = 0.0
+        
+        # 3. Wavelet Analysis for multi-scale momentum
+        try:
+            wavelet_coeffs = self._wavelet_analysis(prices.values)
+            # Calculate momentum from different scales
+            short_term_momentum = np.mean(wavelet_coeffs[:5])
+            medium_term_momentum = np.mean(wavelet_coeffs[5:20])
+            long_term_momentum = np.mean(wavelet_coeffs[20:])
+            
+            # Weighted momentum
+            wavelet_momentum = (
+                short_term_momentum * 0.5 + 
+                medium_term_momentum * 0.3 + 
+                long_term_momentum * 0.2
+            )
+            results['wavelet_momentum'] = float(np.tanh(wavelet_momentum * 10))  # Normalize to [-1, 1]
+        except:
+            results['wavelet_momentum'] = 0.0
+        
+        # 4. Signal-to-Noise Ratio
+        try:
+            # Calculate using returns
+            returns = prices.pct_change().dropna()
+            signal_power = np.var(returns.rolling(20).mean())
+            noise_power = np.var(returns - returns.rolling(20).mean())
+            snr = signal_power / noise_power if noise_power > 0 else 1
+            results['noise_ratio'] = 1 / (1 + snr)  # Convert to noise ratio [0, 1]
+        except:
+            results['noise_ratio'] = 0.5
+        
+        return results
+    
+    def _apply_kalman_filter(self, prices: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Apply Kalman filter for trend extraction"""
+        n = len(prices)
+        
+        # State: [position, velocity]
+        x = np.zeros((2, n))
+        x[:, 0] = [prices[0], 0]
+        
+        # Covariance matrix
+        P = np.eye(2)
+        
+        # Process noise
+        Q = np.array([[self.kalman_process_noise, 0],
+                      [0, self.kalman_process_noise]])
+        
+        # Observation matrix
+        H = np.array([[1, 0]])
+        
+        # Observation noise
+        R = np.array([[self.kalman_observation_noise]])
+        
+        # State transition matrix
+        F = np.array([[1, 1],
+                      [0, 1]])
+        
+        for i in range(1, n):
+            # Predict
+            x_pred = F @ x[:, i-1]
+            P_pred = F @ P @ F.T + Q
+            
+            # Update
+            y = prices[i] - H @ x_pred
+            S = H @ P_pred @ H.T + R
+            K = P_pred @ H.T @ np.linalg.inv(S)
+            
+            x[:, i] = x_pred + K.flatten() * y
+            P = (np.eye(2) - K @ H) @ P_pred
+        
+        return x[0, :], x[1, :]  # Return position and velocity
+    
+    def _wavelet_analysis(self, prices: np.ndarray) -> np.ndarray:
+        """Perform wavelet analysis using continuous wavelet transform"""
+        # Simple wavelet analysis using differences at multiple scales
+        coefficients = []
+        
+        for scale in [1, 2, 4, 8, 16, 32, 64]:
+            if scale < len(prices):
+                # Calculate difference at this scale
+                diff = prices[scale:] - prices[:-scale]
+                coeff = np.mean(diff) / scale
+                coefficients.append(coeff)
+        
+        return np.array(coefficients)
+    
+    def _detect_microstructure_patterns(self, close: pd.Series, high: pd.Series, 
+                                       low: pd.Series, volume: pd.Series) -> Dict[str, Any]:
+        """Detect microstructure patterns using advanced techniques"""
+        patterns = []
+        score = 0.0
+        
+        # 1. Pin bar detection (rejection patterns)
+        body = abs(close - close.shift(1))
+        upper_wick = high - np.maximum(close, close.shift(1))
+        lower_wick = np.minimum(close, close.shift(1)) - low
+        
+        # Bullish pin bar
+        bullish_pin = (lower_wick > 2 * body) & (lower_wick > 2 * upper_wick)
+        if bullish_pin.iloc[-5:].any():
+            patterns.append('bullish_pin_bar')
+            score += 0.3
+        
+        # Bearish pin bar
+        bearish_pin = (upper_wick > 2 * body) & (upper_wick > 2 * lower_wick)
+        if bearish_pin.iloc[-5:].any():
+            patterns.append('bearish_pin_bar')
+            score -= 0.3
+        
+        # 2. Volume spike analysis
+        vol_mean = volume.rolling(20).mean()
+        vol_std = volume.rolling(20).std()
+        volume_z_score = (volume - vol_mean) / vol_std
+        
+        if volume_z_score.iloc[-1] > 2:
+            if close.iloc[-1] > close.iloc[-2]:
+                patterns.append('bullish_volume_spike')
+                score += 0.2
+            else:
+                patterns.append('bearish_volume_spike')
+                score -= 0.2
+        
+        # 3. Price acceleration patterns
+        returns = close.pct_change()
+        acceleration = returns.diff()
+        
+        if acceleration.iloc[-3:].mean() > 0.001:
+            patterns.append('positive_acceleration')
+            score += 0.2
+        elif acceleration.iloc[-3:].mean() < -0.001:
+            patterns.append('negative_acceleration')
+            score -= 0.2
+        
+        # 4. Compression patterns (low volatility before breakout)
+        recent_atr = self._calculate_atr(high.iloc[-10:], low.iloc[-10:], close.iloc[-10:])
+        historical_atr = self._calculate_atr(high.iloc[-50:-10], low.iloc[-50:-10], close.iloc[-50:-10])
+        
+        if recent_atr < historical_atr * 0.5:
+            patterns.append('volatility_compression')
+            # This is neutral but important for breakout prediction
+        
+        return {
+            'patterns': patterns,
+            'score': np.clip(score, -1, 1)
+        }
+    
+    def _calculate_entropy_metrics(self, prices: pd.Series) -> Dict[str, float]:
+        """Calculate entropy-based metrics for market efficiency"""
+        returns = prices.pct_change().dropna()
+        
+        # Shannon entropy of returns
+        hist, bin_edges = np.histogram(returns, bins=20, density=True)
+        hist = hist + 1e-10  # Avoid log(0)
+        price_entropy = -np.sum(hist * np.log2(hist))
+        
+        # Volume entropy (if available)
+        volume_entropy = 0.0  # Placeholder
+        
+        # Information ratio (simplified)
+        # Higher entropy = less predictable = lower information ratio
+        max_entropy = np.log2(len(hist))
+        information_ratio = 1 - (price_entropy / max_entropy)
+        
+        return {
+            'price_entropy': float(price_entropy),
+            'volume_entropy': float(volume_entropy),
+            'information_ratio': float(information_ratio)
+        }
+    
+    def _calculate_fractal_dimension(self, prices: pd.Series) -> float:
+        """Calculate fractal dimension using box-counting method"""
+        try:
+            # Normalize prices to [0, 1]
+            normalized = (prices - prices.min()) / (prices.max() - prices.min())
+            
+            # Create price-time pairs
+            n = len(normalized)
+            points = np.column_stack([np.arange(n) / n, normalized])
+            
+            # Box counting at different scales
+            scales = [2, 4, 8, 16, 32]
+            counts = []
+            
+            for scale in scales:
+                if scale > n / 4:
+                    continue
+                    
+                # Count occupied boxes
+                grid_size = 1 / scale
+                occupied = set()
+                
+                for point in points:
+                    box_x = int(point[0] / grid_size)
+                    box_y = int(point[1] / grid_size)
+                    occupied.add((box_x, box_y))
+                
+                counts.append(len(occupied))
+            
+            if len(counts) >= 2:
+                # Fit log-log relationship
+                log_scales = np.log(scales[:len(counts)])
+                log_counts = np.log(counts)
+                
+                # Linear regression
+                slope, _ = np.polyfit(log_scales, log_counts, 1)
+                fractal_dimension = -slope
+            else:
+                fractal_dimension = 1.5  # Default for random walk
+                
+            return float(np.clip(fractal_dimension, 1.0, 2.0))
+            
+        except:
+            return 1.5  # Default fractal dimension
+    
+    def _estimate_cycle_phase(self, indicators: Dict[str, Any], period: int) -> float:
+        """Estimate current phase in the dominant cycle (0 to 1)"""
+        # Simplified phase estimation using RSI and price position
+        rsi = indicators.get('rsi', 50)
+        bb_position = indicators.get('bb_position', 0.5)
+        
+        # Combine multiple indicators to estimate phase
+        # 0 = bottom, 0.5 = middle, 1 = top
+        phase = (rsi / 100) * 0.5 + bb_position * 0.5
+        
+        return float(phase)

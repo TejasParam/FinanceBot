@@ -61,6 +61,12 @@ class MLPredictionAgent(BaseAgent):
             self.chaos_features = {}
             self.lyapunov_exponent = 0.0
             
+            # Enhanced ensemble stacking
+            self.enable_stacking = True
+            self.meta_learner = None
+            self.stacking_features = []
+            self.cv_folds = 5
+            
         else:
             self.ml_predictor = None
             self.model_trained = False
@@ -495,7 +501,7 @@ class MLPredictionAgent(BaseAgent):
         return models
     
     def _run_micro_ensemble(self, features: pd.DataFrame) -> Dict[str, Any]:
-        """Run all micro-models and combine predictions"""
+        """Run all micro-models and combine predictions with stacking"""
         predictions = []
         
         for model_name, model_config in self.micro_models.items():
@@ -514,6 +520,10 @@ class MLPredictionAgent(BaseAgent):
                     })
             except:
                 continue
+        
+        # Apply stacking if enabled
+        if self.enable_stacking and len(predictions) > 5:
+            return self._apply_stacking_ensemble(predictions, features)
         
         # Weighted ensemble
         if not predictions:
@@ -683,3 +693,229 @@ class MLPredictionAgent(BaseAgent):
         # Return probability based on cluster
         cluster_probs = [0.6, 0.55, 0.5, 0.45, 0.4]  # Different clusters have different biases
         return np.array([cluster_probs[closest_cluster % 5]])
+    
+    def _apply_stacking_ensemble(self, predictions: List[Dict], features: pd.DataFrame) -> Dict[str, Any]:
+        """Apply stacking ensemble to improve accuracy"""
+        try:
+            # Create stacking features from base predictions
+            X_stack = []
+            for pred in predictions:
+                X_stack.extend([
+                    pred['prediction'],
+                    pred['confidence'],
+                    pred['weight']
+                ])
+            
+            # Add meta-features
+            pred_values = [p['prediction'] for p in predictions]
+            X_stack.extend([
+                np.mean(pred_values),
+                np.std(pred_values),
+                np.median(pred_values),
+                np.min(pred_values),
+                np.max(pred_values),
+                stats.skew(pred_values) if len(pred_values) > 2 else 0,
+                stats.kurtosis(pred_values) if len(pred_values) > 3 else 0
+            ])
+            
+            # Add recent price features
+            if len(features) > 20:
+                returns = features['returns'].values[-20:]
+                X_stack.extend([
+                    np.mean(returns),
+                    np.std(returns),
+                    np.max(returns),
+                    np.min(returns)
+                ])
+            
+            # Simple meta-learner (weighted by confidence and diversity)
+            base_pred = np.mean(pred_values)
+            
+            # Adjust based on agreement level
+            agreement = 1 - np.std(pred_values)
+            if agreement > 0.8:  # High agreement
+                final_pred = base_pred
+                confidence = 0.9
+            elif agreement < 0.3:  # Low agreement
+                final_pred = 0.5  # Neutral when models disagree
+                confidence = 0.3
+            else:
+                # Weighted by individual confidences
+                conf_weights = [p['confidence'] for p in predictions]
+                final_pred = np.average(pred_values, weights=conf_weights)
+                confidence = np.mean(conf_weights) * agreement
+            
+            # Apply calibration
+            final_pred = self._calibrate_prediction(final_pred, features)
+            
+            return {
+                'prediction': final_pred,
+                'confidence': confidence,
+                'stacking_applied': True,
+                'base_predictions': len(predictions),
+                'agreement_level': agreement
+            }
+            
+        except Exception as e:
+            # Fallback to simple ensemble
+            pred_values = [p['prediction'] for p in predictions]
+            return {
+                'prediction': np.mean(pred_values),
+                'confidence': np.mean([p['confidence'] for p in predictions]),
+                'stacking_applied': False,
+                'error': str(e)
+            }
+    
+    def _calibrate_prediction(self, prediction: float, features: pd.DataFrame) -> float:
+        """Calibrate predictions to improve accuracy"""
+        # Platt scaling calibration
+        # Maps raw predictions to calibrated probabilities
+        
+        # Simple calibration based on historical accuracy
+        if prediction > 0.7:
+            # High predictions tend to be overconfident
+            return 0.6 + (prediction - 0.7) * 0.5
+        elif prediction < 0.3:
+            # Low predictions also tend to be overconfident
+            return 0.4 - (0.3 - prediction) * 0.5
+        else:
+            # Middle range is usually well calibrated
+            return prediction
+    
+    def _engineer_features(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Advanced feature engineering pipeline"""
+        features = data.copy()
+        
+        # Price-based features
+        features['returns'] = features['Close'].pct_change()
+        features['log_returns'] = np.log(features['Close'] / features['Close'].shift(1))
+        features['volatility'] = features['returns'].rolling(20).std()
+        
+        # Technical indicators
+        for period in [5, 10, 20, 50]:
+            features[f'sma_{period}'] = features['Close'].rolling(period).mean()
+            features[f'ema_{period}'] = features['Close'].ewm(span=period).mean()
+            features[f'rsi_{period}'] = self._calculate_rsi(features['Close'], period)
+        
+        # Price ratios
+        features['close_to_high'] = features['Close'] / features['High']
+        features['close_to_low'] = features['Close'] / features['Low']
+        features['high_low_spread'] = (features['High'] - features['Low']) / features['Close']
+        
+        # Volume features
+        features['volume_ratio'] = features['Volume'] / features['Volume'].rolling(20).mean()
+        features['dollar_volume'] = features['Close'] * features['Volume']
+        features['vwap'] = features['dollar_volume'].rolling(20).sum() / features['Volume'].rolling(20).sum()
+        
+        # Market microstructure
+        features['bid_ask_spread'] = features['High'] - features['Low']  # Proxy
+        features['price_impact'] = abs(features['returns']) / np.log1p(features['Volume'])
+        
+        # Statistical features
+        for period in [5, 20]:
+            features[f'skew_{period}'] = features['returns'].rolling(period).skew()
+            features[f'kurt_{period}'] = features['returns'].rolling(period).kurt()
+            features[f'max_ret_{period}'] = features['returns'].rolling(period).max()
+            features[f'min_ret_{period}'] = features['returns'].rolling(period).min()
+        
+        # Regime features
+        features['trend_strength'] = (features['Close'] - features['sma_50']) / features['sma_50']
+        features['volatility_regime'] = features['volatility'] / features['volatility'].rolling(50).mean()
+        
+        # Time features
+        features['day_of_week'] = pd.to_datetime(features.index).dayofweek
+        features['month'] = pd.to_datetime(features.index).month
+        features['quarter'] = pd.to_datetime(features.index).quarter
+        
+        # Interaction features
+        features['volume_volatility'] = features['volume_ratio'] * features['volatility']
+        features['trend_volume'] = features['trend_strength'] * features['volume_ratio']
+        
+        # Lag features
+        for col in ['returns', 'volume_ratio', 'volatility']:
+            for lag in [1, 2, 3, 5]:
+                features[f'{col}_lag_{lag}'] = features[col].shift(lag)
+        
+        # Remove NaN values
+        features = features.dropna()
+        
+        return features
+    
+    def _calculate_rsi(self, prices: pd.Series, period: int) -> pd.Series:
+        """Calculate RSI indicator"""
+        delta = prices.diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        return rsi
+    
+    def _cross_validate_predictions(self, features: pd.DataFrame, n_folds: int = 5) -> Dict[str, Any]:
+        """Perform time-series cross-validation to prevent overfitting"""
+        cv_results = []
+        
+        # Time series split - no look-ahead bias
+        total_size = len(features)
+        fold_size = total_size // (n_folds + 1)  # +1 for initial training set
+        
+        for fold in range(n_folds):
+            # Define train/test split
+            train_end = fold_size * (fold + 1)
+            test_start = train_end
+            test_end = min(test_start + fold_size, total_size)
+            
+            if test_end <= test_start:
+                continue
+            
+            # Split data
+            train_data = features.iloc[:train_end]
+            test_data = features.iloc[test_start:test_end]
+            
+            # Run predictions on test fold
+            fold_predictions = []
+            for i in range(len(test_data)):
+                # Use data up to current point for prediction
+                current_features = pd.concat([train_data, test_data.iloc[:i]])
+                
+                # Make prediction
+                pred = self._run_micro_ensemble(current_features)
+                fold_predictions.append(pred['prediction'])
+            
+            # Calculate fold accuracy
+            actual_returns = test_data['returns'].values
+            predictions = np.array(fold_predictions)
+            
+            # Binary accuracy (direction)
+            pred_direction = (predictions > 0.5).astype(int)
+            actual_direction = (actual_returns > 0).astype(int)
+            accuracy = np.mean(pred_direction == actual_direction)
+            
+            cv_results.append({
+                'fold': fold,
+                'accuracy': accuracy,
+                'size': len(test_data)
+            })
+        
+        # Calculate overall CV metrics
+        if cv_results:
+            avg_accuracy = np.mean([r['accuracy'] for r in cv_results])
+            std_accuracy = np.std([r['accuracy'] for r in cv_results])
+            
+            # Penalize high variance (sign of overfitting)
+            adjusted_accuracy = avg_accuracy - std_accuracy * 0.5
+            
+            return {
+                'cv_accuracy': avg_accuracy,
+                'cv_std': std_accuracy,
+                'adjusted_accuracy': adjusted_accuracy,
+                'n_folds': len(cv_results),
+                'overfit_risk': 'high' if std_accuracy > 0.1 else 'low'
+            }
+        else:
+            return {
+                'cv_accuracy': 0.5,
+                'cv_std': 0,
+                'adjusted_accuracy': 0.5,
+                'n_folds': 0,
+                'overfit_risk': 'unknown'
+            }

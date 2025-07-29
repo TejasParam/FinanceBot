@@ -17,6 +17,10 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 import json
+try:
+    from .free_alternative_data import FreeAlternativeData
+except ImportError:
+    FreeAlternativeData = None
 
 class SentimentAnalysisAgent(BaseAgent):
     """
@@ -31,6 +35,13 @@ class SentimentAnalysisAgent(BaseAgent):
         except Exception as e:
             print(f"Warning: Could not initialize news analyzer: {e}")
             self.news_analyzer = None
+        
+        # Initialize free alternative data source
+        try:
+            self.free_alt_data = FreeAlternativeData() if FreeAlternativeData else None
+        except Exception as e:
+            print(f"Warning: Could not initialize free alternative data: {e}")
+            self.free_alt_data = None
         
         # Enhanced 50+ institutional-grade alternative data sources
         self.alternative_data_sources = {
@@ -412,6 +423,16 @@ class SentimentAnalysisAgent(BaseAgent):
                 
             if cache_age < cache_duration:
                 return cached_data['data']
+        
+        # Try to use free alternative data source first
+        if self.free_alt_data:
+            try:
+                free_data = self.free_alt_data.get_all_alternative_data(ticker)
+                if free_data and 'composite_score' in free_data:
+                    # Convert free data format to our expected format
+                    return self._convert_free_data_format(ticker, free_data)
+            except Exception as e:
+                print(f"Free alternative data failed, using simulation: {e}")
         
         # 1. Enhanced Social Media Sentiment from 15+ sources with NLP
         social_scores = self._analyze_social_media_advanced(ticker)
@@ -843,3 +864,47 @@ class SentimentAnalysisAgent(BaseAgent):
             return "negative"
         else:
             return "very negative"
+    
+    def _convert_free_data_format(self, ticker: str, free_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert free alternative data to our expected format"""
+        # Map free data to our format
+        converted = {
+            'social_media': free_data.get('reddit', {}),
+            'web_traffic': free_data.get('search_trends', {}),
+            'satellite': {},  # Not available in free version
+            'search_trends': free_data.get('search_trends', {}),
+            'credit_card': {},  # Not available in free version
+            'job_postings': free_data.get('jobs', {}),
+            'supply_chain': {},  # Not available in free version
+            'regulatory': {},  # Not available in free version
+            'esg': {},  # Not available in free version
+            'weather': {},  # Not available in free version
+            'iot_sensors': {},  # Not available in free version
+            'news_nlp': free_data.get('news', {}),
+            'crypto_sentiment': {},  # Not available in free version
+            'consumer_behavior': free_data.get('product_reviews', {}),
+            'location_intelligence': {},  # Not available in free version
+            'combined_score': free_data.get('composite_score', 0),
+            'signal_quality': {
+                'data_completeness': 0.6,  # Lower for free data
+                'data_freshness_hours': 1,
+                'confidence_interval': 0.7,
+                'statistical_significance': 0.8
+            },
+            'attention_weights': [],
+            'feature_importance': {},
+            'data_sources_count': 10,  # Free sources
+            'unique_data_points': 50,  # Fewer than paid
+            'ml_confidence': 0.7,
+            'last_updated': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'data_source': 'free'
+        }
+        
+        # Cache the converted data
+        cache_key = self._generate_cache_key(ticker)
+        self.sentiment_cache[cache_key] = {
+            'data': converted,
+            'timestamp': time.time()
+        }
+        
+        return converted

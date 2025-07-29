@@ -30,6 +30,14 @@ from .stat_arb_agent import StatisticalArbitrageAgent
 from .risk_management_agent import RiskManagementAgent
 from .drl_strategy_selector import DRLStrategySelector
 from .transformer_regime_predictor import TransformerRegimePredictor
+try:
+    from .free_realtime_data import FreeRealtimeDataFeed
+except ImportError:
+    FreeRealtimeDataFeed = None
+try:
+    from .paper_trading_executor import PaperTradingExecutor
+except ImportError:
+    PaperTradingExecutor = None
 
 class AgentCoordinator:
     """
@@ -98,6 +106,24 @@ class AgentCoordinator:
         self.use_drl_weighting = True
         self.use_regime_adjustment = True
         self.expected_accuracy = 0.75  # Target 75% with all enhancements
+        
+        # Initialize free real-time data feed
+        try:
+            self.realtime_data_feed = FreeRealtimeDataFeed() if FreeRealtimeDataFeed else None
+            if self.realtime_data_feed:
+                print("✓ Free real-time data feed initialized")
+        except Exception as e:
+            print(f"✗ Could not initialize real-time data feed: {e}")
+            self.realtime_data_feed = None
+        
+        # Initialize paper trading executor
+        try:
+            self.paper_trader = PaperTradingExecutor() if PaperTradingExecutor else None
+            if self.paper_trader:
+                print(f"✓ Paper trading executor initialized (Portfolio: ${self.paper_trader.get_portfolio_value():,.2f})")
+        except Exception as e:
+            print(f"✗ Could not initialize paper trader: {e}")
+            self.paper_trader = None
         
     def analyze_stock(self, ticker: str, **kwargs) -> Dict[str, Any]:
         """
@@ -513,10 +539,33 @@ class AgentCoordinator:
         
         return " ".join(reasoning_parts)
     
+    def _get_realtime_data(self, ticker: str) -> Optional[Dict[str, Any]]:
+        """Get real-time data if available"""
+        if not self.realtime_data_feed:
+            return None
+        
+        try:
+            # Start feed for ticker if not already running
+            if not hasattr(self, '_feed_started'):
+                self.realtime_data_feed.start_feeds([ticker])
+                self._feed_started = True
+                time.sleep(2)  # Allow time for data to come in
+            
+            # Get current data
+            return self.realtime_data_feed.get_current_data(ticker)
+        except Exception as e:
+            self.logger.warning(f"Failed to get real-time data: {e}")
+            return None
+    
     def _get_market_context(self, ticker: str) -> Dict[str, Any]:
         """Get market context for better predictions - Enhanced for 80% accuracy"""
         try:
             import yfinance as yf
+            
+            # Try to get real-time data first
+            realtime_data = self._get_realtime_data(ticker)
+            if realtime_data:
+                self.logger.info(f"Using real-time data for {ticker}")
             
             # Get both SPY and the ticker data
             spy = yf.download('SPY', period='3mo', progress=False)

@@ -581,16 +581,46 @@ class RiskManagementAgent(BaseAgent):
                                 evt_metrics: Dict[str, Any], regime_analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate optimal position size using Kelly Criterion and risk limits"""
         
-        # Basic Kelly Criterion
+        # Enhanced Kelly Criterion with multiple approaches
+        
+        # 1. Classic Kelly
         win_rate = (returns > 0).mean()
         avg_win = returns[returns > 0].mean() if (returns > 0).any() else 0
         avg_loss = abs(returns[returns < 0].mean()) if (returns < 0).any() else 0.001
         
         if avg_loss > 0:
-            kelly_fraction = (win_rate * avg_win - (1 - win_rate) * avg_loss) / avg_win
-            kelly_fraction = max(0, min(0.25, kelly_fraction))  # Cap at 25%
+            kelly_classic = (win_rate * avg_win - (1 - win_rate) * avg_loss) / avg_win
+            kelly_classic = max(0, min(0.25, kelly_classic))  # Cap at 25%
         else:
-            kelly_fraction = 0
+            kelly_classic = 0
+        
+        # 2. Optimal f (Ralph Vince method)
+        if len(returns) > 20:
+            # Find f that maximizes terminal wealth growth
+            returns_array = returns.values
+            optimal_f = self._calculate_optimal_f(returns_array)
+        else:
+            optimal_f = kelly_classic
+        
+        # 3. Kelly with drawdown constraint
+        max_dd = basic_metrics.get('max_drawdown', 0.2)
+        kelly_dd_adjusted = kelly_classic * (1 - max_dd)
+        
+        # 4. Regime-adjusted Kelly
+        if regime_analysis.get('regime') == 'bear':
+            kelly_regime = kelly_classic * 0.5
+        elif regime_analysis.get('regime') == 'high_volatility':
+            kelly_regime = kelly_classic * 0.7
+        else:
+            kelly_regime = kelly_classic
+        
+        # Combine Kelly estimates (weighted average)
+        kelly_fraction = (
+            0.4 * kelly_classic +
+            0.2 * optimal_f +
+            0.2 * kelly_dd_adjusted +
+            0.2 * kelly_regime
+        )
         
         # Adjust for higher moments
         skew_adjustment = 1 - max(0, -basic_metrics['skewness']) * 0.1
@@ -887,3 +917,46 @@ class RiskManagementAgent(BaseAgent):
             'reasoning': error_msg,
             'position_sizing': {'recommended_size': self.base_position_size}
         }
+    
+    def _calculate_optimal_f(self, returns: np.ndarray) -> float:
+        """Calculate optimal f using Ralph Vince method"""
+        try:
+            # Convert returns to profit/loss series
+            initial_capital = 1.0
+            trades = returns[returns != 0]  # Remove zero returns
+            
+            if len(trades) < 10:
+                return 0.02  # Default small position
+            
+            # Find worst loss
+            worst_loss = abs(min(trades)) if min(trades) < 0 else 0.01
+            
+            # Grid search for optimal f
+            f_values = np.linspace(0.01, 0.5, 50)
+            terminal_wealths = []
+            
+            for f in f_values:
+                wealth = initial_capital
+                for trade in trades:
+                    # Calculate holding period return
+                    hpr = 1 + f * (trade / worst_loss)
+                    wealth *= max(0, hpr)  # Prevent negative wealth
+                    
+                    if wealth <= 0:
+                        break
+                
+                terminal_wealths.append(wealth)
+            
+            # Find f that maximizes terminal wealth
+            if terminal_wealths:
+                optimal_idx = np.argmax(terminal_wealths)
+                optimal_f = f_values[optimal_idx]
+                
+                # Apply safety factor
+                return min(0.25, optimal_f * 0.5)  # Use half optimal f
+            else:
+                return 0.02
+                
+        except Exception as e:
+            self.logger.warning(f"Optimal f calculation failed: {e}")
+            return 0.02

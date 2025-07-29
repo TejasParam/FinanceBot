@@ -22,6 +22,23 @@ class RegimeDetectionAgent(BaseAgent):
         super().__init__("RegimeDetection")
         self.data_collector = DataCollectionAgent()
         
+        # Market microstructure features
+        self.microstructure_enabled = True
+        self.tick_data_buffer = {}
+        self.order_flow_imbalance = {}
+        self.spread_dynamics = {}
+        
+        # Enhanced regime detection
+        self.regime_history = []
+        self.transition_probabilities = {
+            'bull_to_bear': 0.15,
+            'bull_to_sideways': 0.25,
+            'bear_to_bull': 0.15,
+            'bear_to_sideways': 0.30,
+            'sideways_to_bull': 0.35,
+            'sideways_to_bear': 0.35
+        }
+        
     def analyze(self, ticker: str, period: str = "1y", **kwargs) -> Dict[str, Any]:
         """
         Perform market regime analysis for the given ticker.
@@ -46,6 +63,12 @@ class RegimeDetectionAgent(BaseAgent):
             
             # Calculate regime indicators
             regime_metrics = self._calculate_regime_metrics(data)
+            
+            # Analyze microstructure if enabled
+            microstructure_data = {}
+            if self.microstructure_enabled:
+                microstructure_data = self._analyze_microstructure(data, ticker)
+                regime_metrics['microstructure'] = microstructure_data
             
             # Determine current regime
             current_regime = self._determine_regime(regime_metrics)
@@ -280,3 +303,76 @@ class RegimeDetectionAgent(BaseAgent):
             reasoning_parts.append("Negative momentum supports bearish outlook.")
         
         return " ".join(reasoning_parts)
+    
+    def _analyze_microstructure(self, data: pd.DataFrame, ticker: str) -> Dict[str, Any]:
+        """Analyze market microstructure for regime detection"""
+        microstructure = {}
+        
+        try:
+            # Price impact and liquidity
+            returns = data['Close'].pct_change()
+            volume = data['Volume']
+            
+            # Kyle's lambda (price impact coefficient)
+            if len(returns) > 20 and len(volume) > 20:
+                # Estimate using returns vs volume
+                volume_changes = volume.pct_change()
+                price_impact = abs(returns) / (volume_changes.abs() + 1e-8)
+                microstructure['price_impact'] = price_impact.rolling(20).mean().iloc[-1]
+            else:
+                microstructure['price_impact'] = 0.0001
+            
+            # Bid-ask spread proxy (using high-low)
+            spread_proxy = (data['High'] - data['Low']) / data['Close']
+            microstructure['spread'] = spread_proxy.rolling(20).mean().iloc[-1]
+            
+            # Order flow imbalance (using volume and price direction)
+            buy_volume = volume[returns > 0].sum()
+            sell_volume = volume[returns < 0].sum()
+            total_volume = buy_volume + sell_volume
+            
+            if total_volume > 0:
+                microstructure['order_flow_imbalance'] = (buy_volume - sell_volume) / total_volume
+            else:
+                microstructure['order_flow_imbalance'] = 0
+            
+            # Liquidity regime
+            avg_volume = volume.rolling(20).mean().iloc[-1]
+            recent_volume = volume.iloc[-5:].mean()
+            microstructure['liquidity_ratio'] = recent_volume / avg_volume if avg_volume > 0 else 1
+            
+            # Volatility clustering (GARCH effect)
+            squared_returns = returns ** 2
+            volatility_autocorr = squared_returns.autocorr(lag=1)
+            microstructure['volatility_clustering'] = volatility_autocorr if not pd.isna(volatility_autocorr) else 0
+            
+            # Microstructure regime
+            if microstructure['spread'] > 0.02 and microstructure['liquidity_ratio'] < 0.7:
+                microstructure['micro_regime'] = 'stressed'
+            elif microstructure['volatility_clustering'] > 0.5:
+                microstructure['micro_regime'] = 'volatile'
+            elif microstructure['order_flow_imbalance'] > 0.3:
+                microstructure['micro_regime'] = 'bullish_flow'
+            elif microstructure['order_flow_imbalance'] < -0.3:
+                microstructure['micro_regime'] = 'bearish_flow'
+            else:
+                microstructure['micro_regime'] = 'normal'
+            
+            # Store in buffer
+            self.tick_data_buffer[ticker] = {
+                'last_update': pd.Timestamp.now(),
+                'microstructure': microstructure
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Microstructure analysis failed: {e}")
+            microstructure = {
+                'price_impact': 0.0001,
+                'spread': 0.01,
+                'order_flow_imbalance': 0,
+                'liquidity_ratio': 1,
+                'volatility_clustering': 0,
+                'micro_regime': 'unknown'
+            }
+        
+        return microstructure
